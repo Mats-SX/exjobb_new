@@ -1,0 +1,22 @@
+# Temporary files
+*~
+*.swp
+
+# TeX extra-files
+*.aux
+*.log
+*.out
+*.backup
+*.toc
+
+# Object files
+*.o
+
+# header info files
+*.d
+
+# Don't include binaries. They are giving me a headache.
+xjobb/head/common/bins/
+
+# Dolphin file manager directory files. Not sure what they do
+.directory

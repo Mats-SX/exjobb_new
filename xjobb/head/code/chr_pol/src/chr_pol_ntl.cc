@@ -1,0 +1,26 @@
+#include <fstream>
+#include <iostream>
+
+#include "types.h"
+#include "utils.h"
+
+using namespace std;
+
+int main(int argc, char** argv) {
+
+	if (argc != 3)
+		cout << "Usage: <prg> <infile> <k>" << endl;
+
+	ifstream infile(argv[1]);
+	
+	u_int_t n;		// Size of V
+	u_int_t k;		// Number of colors to use.
+
+	infile >> n;
+	k = atoi(argv[2]);
+
+	bool* matrix = new bool[n*n];
+	utils::parse(infile, &matrix, n);
+
+	utils::small_space_chr_pol(n, k, &matrix);
+}
