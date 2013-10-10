@@ -1,0 +1,27 @@
+# Syntax:
+# bin/exec nbrI
+# k1 nbroftestsJ1 testfile1 testfile2 ... testfileJ1
+# k2 nbroftestsJ2 testfile1 testfile2 ... testfileJ2
+# ...
+# kI nbroftestsJI testfile1 testfile2 ... testfileJI
+bins/chr_pol_pari 18
+# test 1: k=10, n=18...25, dE=25..100, |E|=39...171
+10 14 adjm/m_18_25_39 adjm/m_18_50_77 adjm/m_18_75_115 adjm/m_18_100_153 adjm/m_19_25_43 adjm/m_19_50_86 adjm/m_19_75_129 adjm/m_19_100_171 adjm/m_20_25_48 adjm/m_20_50_95 adjm/m_21_25_53 adjm/m_22_25_58 adjm/m_23_25_64 adjm/m_24_25_69
+# test 2: k = 2...18, n=19, |E|=86
+2 1 adjm/m_19_50_86
+3 1 adjm/m_19_50_86
+4 1 adjm/m_19_50_86
+5 1 adjm/m_19_50_86
+6 1 adjm/m_19_50_86
+7 1 adjm/m_19_50_86
+8 1 adjm/m_19_50_86
+9 1 adjm/m_19_50_86
+10 1 adjm/m_19_50_86
+11 1 adjm/m_19_50_86
+12 1 adjm/m_19_50_86
+13 1 adjm/m_19_50_86
+14 1 adjm/m_19_50_86
+15 1 adjm/m_19_50_86
+16 1 adjm/m_19_50_86
+17 1 adjm/m_19_50_86
+18 1 adjm/m_19_50_86
