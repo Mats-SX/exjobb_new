@@ -9,10 +9,10 @@ CPPFLAGS += -O3
 endif
 
 # Paths
-HOME		= ~/repo/xjobb/head/
-THIS		= $(HOME)/code/#ADD branch name here
-VPATH		= $(THIS)/src/
-BIN		= $(HOME)/common/bins/
+HOME		= /home/sx/repo/xjobb/head/
+THIS		= $(HOME)code/#ADD branch name here/
+VPATH		= $(THIS)src/
+BIN		= $(HOME)common/bins/
 
 # ld flags
 LDLIBS		+= #ADD libs here
@@ -26,7 +26,7 @@ CXXFLAGS	+= -m64 -mtune=corei7-avx -march=corei7-avx
 # Programs
 PRGS		= #ADD prg names here
 OBJS		= *.o
-DFILES		= $(VPATH)*.d
+DFILES		= $(addprefix $(VPATH), $(wildcard *.d))
 
 # default targets
 .PHONY: all install clean
