@@ -1,11 +1,11 @@
 
 
-DEBUG	= true		# default is debug on
+DEBUG	= true
 ifeq ($(DEBUG), true)
-CPPFLAGS += -g
+CXXFLAGS += -g
 LDFLAGS += -g
 else
-CPPFLAGS += -O3
+CXXFLAGS += -O3
 endif
 
 # Paths
