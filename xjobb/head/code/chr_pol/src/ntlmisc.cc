@@ -1,6 +1,6 @@
 #include <NTL/ZZX.h>
 #include "types.h"
-#include "utils.h"
+#include "interface.h"
 
 // DEBUG
 #include <iostream>
@@ -18,7 +18,12 @@
  * powering (power)
  * output of highest-def coefficient (print_last_coeff)
  * sign-flip (flip-sign)
+ *
+ * Garbage collection (not for NTL)
  */
+
+void interface::gb(rval_t&) {}
+void interface::save_sp() {}
 
 /*
  * pol is a GEN
@@ -41,19 +46,27 @@ void interface::add_assign(rval_t& pol1, rval_t& pol2) {
 	pol1 += pol2;
 }
 
-void interface::mul_assign(rval_t& pol1, rval_t& pol2) {
+void interface::mul_assign(rval_t& pol1, rval_t& pol2, const u_int_t& n) {
 	pol1 *= pol2;
+	
+	/* This would keep polynomials at minimum degree.
+	 * It does not work, which is strange.
+	 */
+//	if (NTL::deg(pol1) > n)
+//		pol1.SetLength(n+1);
 }
 
-void interface::power(rval_t& pol, const u_int_t& deg) {
+void interface::power(rval_t& pol, const u_int_t& deg, const u_int_t& n) {
 	rval_t cpy(pol);
 	for (u_int_t i = U_ZERO; i < deg - U_ONE; ++i) {
 		pol *= cpy;
 	}
+	if (NTL::deg(pol) > n)
+		pol.SetLength(n+1);
 }
 
 void interface::print_coeff(rval_t& pol, const u_int_t& n) {
-	std::cout << pol[n] << std::endl;
+	std::cout << pol << std::endl;
 }
 
 void interface::flip_sign(rval_t& pol, int sign) {

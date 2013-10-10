@@ -1,8 +1,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-//#include <NTL/ZZX.h>
-#include <pari/pari.h>
+#include <NTL/ZZX.h>
+//#include <pari/pari.h>
 
 static const bool N_LESS_64		= true;
 
@@ -17,8 +17,10 @@ typedef signed long sign_t;
 static const sign_t S_ONE		= 1l;
 static const sign_t S_N_ONE		= -1l;
 
-//typedef NTL::ZZX rval_t;
-typedef GEN rval_t;
+typedef void* sp;
+typedef NTL::ZZX rval_t;
+//typedef GEN rval_t;
+//typedef pari_sp sp;
 
 template <class T>
 class PointerList {

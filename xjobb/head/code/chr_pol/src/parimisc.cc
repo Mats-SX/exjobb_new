@@ -1,6 +1,6 @@
 #include <pari/pari.h>
 #include "types.h"
-#include "utils.h"
+#include "interface.h"
 
 // DEBUG
 #include <iostream>
@@ -18,7 +18,22 @@
  * powering (power)
  * output of highest-def coefficient (print_last_coeff)
  * sign-flip (flip-sign)
+ *
+ * garbage collection:
+ * save_sp (save stack pointer)
+ * gb (restore stack pointer)
  */
+
+sp interface::stp;
+
+void interface::save_sp() {
+	interface::stp = avma;
+}
+
+void interface::gb(rval_t& r) {
+	sp lbot = avma;
+	r = gerepile(interface::stp, lbot, r);
+}
 
 /*
  * pol is a GEN
@@ -57,13 +72,6 @@ void interface::init_monomial(const u_int_t& deg, rval_t& pol) {
  */
 void interface::add_assign(rval_t& pol1, rval_t& pol2) {
 
-	/*
-	std::cout << "Adding ";
-	pari_printf("%Ps", pol1);
-	std::cout << " + ";
-	pari_printf("%Ps\n", pol2);
-	*/
-
 	pol1 = ZX_add(pol1, pol2);
 
 	/*
@@ -72,25 +80,33 @@ void interface::add_assign(rval_t& pol1, rval_t& pol2) {
 	*/
 }
 
-void interface::mul_assign(rval_t& pol1, rval_t& pol2) {
+void interface::mul_assign(rval_t& pol1, rval_t& pol2, const u_int_t& n) {
+
 	pol1 = ZX_mul(pol1, pol2);
+
+	// Truncate away all high-degree terms.
+	if (lg(pol1) > n + 3)	
+		setlg(pol1, n + 3);
+
 }
 
-void interface::power(rval_t& pol, const u_int_t& deg) {
+void interface::power(rval_t& pol, const u_int_t& deg, const u_int_t& n) {
 
-	/*
-	std::cout << "Powering ";
-	pari_printf("%Ps", pol);
-	std::cout << " to " << deg << std::endl;
-	*/
-
-	pol = gpowgs(pol, deg);
-	// try gen_powu(pol, deg, NULL, sqr, mul) ?
 	
-	/*
-	std::cout << "Result: ";
-	pari_printf("%Ps\n", pol);
-	*/
+//	std::cout << "Powering ";
+//	pari_printf("%Ps", pol);
+//	std::cout << " to " << deg << std::endl;
+
+	pol = gpowgs(pol, deg);	
+	// try gen_powu(pol, deg, NULL, sqr, mul) ?
+
+	// Truncate away all high-degree terms.
+	if (lg(pol) > n + 3)	
+		setlg(pol, n + 3);
+	
+//	std::cout << "Result: ";
+//	pari_printf("%Ps\n", pol);
+	
 }
 
 void interface::print_coeff(rval_t& pol, const u_int_t& n) {

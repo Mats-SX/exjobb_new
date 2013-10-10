@@ -1,5 +1,7 @@
 #include <fstream>
 #include <iostream>
+#include <signal.h>
+#include <unistd.h>
 
 #include "types.h"
 #include "utils.h"
@@ -23,4 +25,8 @@ int main(int argc, char** argv) {
 	utils::parse(infile, &matrix, n);
 
 	utils::small_space_chr_pol(n, k, &matrix);
+	
+	cout << "Now pausing for collection of statistics. PID is " << getpid() << endl;
+	cout << "Kill me with 'kill -s 9 <PID>' if necessary." << endl;
+	raise(SIGSTOP);
 }

@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "utils.h"
+#include "interface.h"
 #include "types.h"
 
 using namespace interface;
@@ -73,12 +74,15 @@ void utils::small_space_chr_pol(const u_int_t& n, const u_int_t& k, bool** matri
 	set_t v1 = two_to_the_n1 - 1 ;
 	set_t v2 = exp2(n) - two_to_the_n1;
 
+	save_sp();
+	
 	// 1.
 	rval_t r;
 	init_zero(r);
 
 	// {{ 2. For each subset X1 of V1, do }}
 	for (set_t x1 = EMPTY_SET; x1 <= v1; ++x1) {
+
 
 		// Data structures
 		rval_list_t h(two_to_the_n2);
@@ -130,7 +134,7 @@ void utils::small_space_chr_pol(const u_int_t& n, const u_int_t& k, bool** matri
 		utils::fast_up_zeta_transform_exp_space(n2, h);
 
 		for (u_int_t i = U_ZERO; i < two_to_the_n2; ++i) {
-			mul_assign(h[i], l[i]);
+			mul_assign(h[i], l[i], n);
 		}
 
 		// {{ e) Set h <- gS }}
@@ -142,10 +146,12 @@ void utils::small_space_chr_pol(const u_int_t& n, const u_int_t& k, bool** matri
 			set_t x2 = i * two_to_the_n1;
 			int exponent = n - utils::size_of(x1) - utils::size_of(x2);
 			int sign = utils::exp_neg_one(exponent);
-			power(h[i], k);
+			power(h[i], k, n);
 			flip_sign(h[i], sign);
 			add_assign(r, h[i]);
 		}
+
+		gb(r);
 	}
 
 	// { 3. Return the coefficient of z^n in r }}

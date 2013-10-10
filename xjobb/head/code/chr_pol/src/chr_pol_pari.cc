@@ -22,7 +22,11 @@ int main(int argc, char** argv) {
 	bool* matrix = new bool[n*n];
 	utils::parse(infile, &matrix, n);
 
-	pari_init(100000000000l, 2);
+	pari_init(10000000000l, 2);
 
 	utils::small_space_chr_pol(n, k, &matrix);
+
+	cout << "Now pausing for collection of statistics. PID is " << getpid() << endl;
+	cout << "Kill me with 'kill -s 9 <PID>' if necessary." << endl;
+	raise(SIGSTOP);
 }
