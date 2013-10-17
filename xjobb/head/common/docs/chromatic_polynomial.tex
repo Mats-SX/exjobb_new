@@ -1,0 +1,279 @@
+\documentclass[a4paper, titlepage]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage[english]{babel}
+\usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{wasysym}
+\usepackage{pgfplots}
+\usepackage{fancyvrb}
+\fvset{tabsize=3}
+\fvset{fontsize=\small}
+\newcommand{\code}{\texttt}
+
+\title{\huge{Performance measurements of a small-space Chromatic Polynomial algorithm}}
+
+\author{Mats Rydberg}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Chromatic Polynomial in small space}
+The algorithm measured in this performance test is described in Björklund et al \cite{cov_pack}. It is based on the linear-space Fast Zeta Transform described in the same paper, and is proven to perform in time $O(2^n)$ and space $O(1.2916^n)$.
+
+Our input is a graph $G$ on $n$ vertices and $m$ edges. The main subroutine counts the number of ways to colour $G$ using $q$ colours. This is done for $q = 0, 1, \ldots n$, yielding $n + 1$ points $(x_i, y_i)$. These are by definition points which the \emph{chromatic polynomial} $\chi_G(t)$ passes through. $\chi_G(t)$ has exactly degree $n$, and so we have enough information to recover it explicitly using interpolation.
+
+The algorithm in pseudo-code as follows:
+
+\begin{verbatim}
+main
+    read G = (V, E)
+    for q = 0, 1, ..., n
+        p[q] = count_colourings(G, q)
+    end
+    x_G = interpolate(p)
+    return x_G
+
+count_colourings(G, q)
+    partition V into V1, V2
+    for each subset of V1
+        
+    return r
+\end{verbatim}
+
+For a more detailed description, see \cite{cov_pack}.
+
+\section{Implementation details}
+My test implementation only partially supports values of $n$ over 64. In practice, the program does not perform very well for such large problems anyway, so for the meantime this restriction is not critical. It also allows me to use a quite natural way of encoding sets by simply letting them be a whole integer word, 64 bits long. A one in position $i$ of the word means that vertex $i$ in the graph is present in the set represented by the word.
+
+I've chosen to support adjancency matrices as input structure, representing an arbitrary graph. Another common graph representation is the edge list, which is faster, but since our problem is exponentially hard, another degree of a polynomial term doesn't really affect our performance very much. It is also more straight-forward for me to generate randomized graphs using an adjancency matrix.
+
+For polynomial representation, I've implemented two libraries for number theoretic calculations to be used by my program. These also provide interpolation functionality.
+
+\subsection{NTL 6.0.0}
+The first is NTL, Number Theoretic Library, written in C++ by Victor Shoup at New York University\cite{ntl}. It is advertised as one of the fastest implementations of polynomial arithmetic, which is all that I am interested in. Unfortunately, it does not provide any non-trivial way of exponentiating polynomials, and its multiplication algorithms are a bit lackluster after some careful studying. It is very easy to use, provides its own garbage collection and has a rich, high-level interface for library usage.
+
+The functions I use are primarily these: \code{ZZX.operator+=()}, \code{ZZX.operator*=()}.
+
+\subsection{PARI 2.5.5}
+Experiencing the relative lack of performance boost from the NTL implementation led me to find also the PARI project. It is written in C mainly by a group of French computer scientists at Université Bordeaux \cite{pari}, together with a calculator-like interface (\code{gp}) to be used by an end-user (comparable to Maple). The PARI library is provided at a much lower level, requires the user to garbage collect (since it is written in C, after all), has a much steeper learning curve and a very detailed but hard-to-grasp documentation. It is a bit unclear to me how exactly PARI implements polynomial exponentiation and multiplication, but from the impression I've gotten and, more importantly, its performance, it has to be non-trivial.
+
+The functions I use are primarily these: \code{ZX\_add()}, \code{ZX\_mul()}, \code{gpowgs()}.
+
+\subsection{GMP 5.1.2}
+Both the libraries I use to represent polynomials allow (and encourage) the user to configure them using GMP\cite{gmp} as the low-level interface for integral arithmetic (actually, for all arithmetic, but I only use integers). Authors of both libraries suggest that using GMP instead of their own, native low-level interface will yield significant performance boosts. For this reason, I have done just that. GMP is well documented, easy-to-use, provides both C and C++ interfaces and even has a well-maintained bug reporting facility (I got an answer the same day!). GMP allows the user a rich variety of configuration options, and I've tried to optimize as narrowly as possible to get maximum performance on one machine.
+
+In my implementation, I only use GMP to generate randomized graphs. All arithmetic is performed via the interfaces of PARI and NTL, which themselves call underlying GMP functions. My own naive implementation of polynomials also uses GMP types directly.
+
+\subsection{Multiplication algorithms}
+Much of the complexity of the whole algorithm comes down 
+ I was hoping to find that it implemented some version of Toom-Cook\cite{toom-cook}, but I do not know for sure.
+
+\section{Test structure}
+In the $k$-problem testing, it was easier to isolate variables, because there was an exponentially large definition base of one of them ($|\mathcal{F}|$). For the chromatic polynomial, I found it was harder. This is the main reason that I am not setting $|E|$ as constant and varying $n$, but I set $dE$ constant, which is the \emph{density} of edges in the graph, counted in percent.
+
+The test cases I created were these:
+
+\begin{enumerate}
+ \item Set $k=3$, $dE=40$ and vary $n = 4, 6, 7, 8, \ldots, 26, 27$
+ \item Set $k=10$, $n=19$ and vary $dE= 5, 10, 15, \ldots, 95, 100$
+ \item Set $n=19$, $dE=40$ and vary $k = 2, 3, 4, \ldots, 18, 19$
+\end{enumerate}
+
+Note that because of an unknown error, $n=5$ was not tested.
+
+\newpage
+\section{Test results}
+Here follows the performance graphs for all tests. Some interpretational text is also provided. The blue circles show user time in the time graphs and virtual memory in the memory graphs. The red squares show system time in the time graphs and resident set size in the memory graphs.
+
+\subsection{PARI 2.5.5}
+This is the most well-performing program. It computes $\chi_G(t)$ for $n=27$ in under 350 seconds.
+
+Note that some of the memory diagrams only include one plot (which is the resident set size). This is because PARI is implemented using its own stack, which is also pre-allocated (for speed). I'm pre-allocating it about 10GB of space initially, giving a ''constant'' virtual memory peak at that value.
+
+\subsubsection{Test 1}
+\vspace{3mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$n$,
+ylabel=time (ms)]
+\addplot table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_chr_pol1_time1};
+\addplot table[x=n,y=st] {../output/parsed_results/chr_pol_pari_chr_pol1_time1};
+%\addplot table[x=n,y=tt] {../output/parsed_results/chr_pol_pari_chr_pol1_time1};
+\end{axis}
+\end{tikzpicture}
+\\
+Not surprisingly, time shoots upwards really fast when we get sizeable values of $n$.\\
+\vspace{4mm}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$n$,
+ylabel=resident set / virtual memory (MB)]
+\addplot table[x=n,y=vm] {../output/parsed_results/chr_pol_pari_chr_pol1_mem1};
+\addplot table[x=n,y=rss] {../output/parsed_results/chr_pol_pari_chr_pol1_mem1};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+And the same for memory usage. It is hard to see from this graph how much less the actual increase in memory is compared to an asymptotical $O(2^n)$.
+
+\subsubsection{Test 2}
+\vspace{4mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$dE$,
+ylabel=time (ms)]
+\addplot table[x=df,y=ut] {../output/parsed_results/chr_pol_pari_chr_pol1_time2};
+\addplot table[x=df,y=st] {../output/parsed_results/chr_pol_pari_chr_pol1_time2};
+%\addplot table[x=df,y=tt] {../output/parsed_results/chr_pol_pari_chr_pol1_time2};
+\end{axis}
+\end{tikzpicture}
+\\
+This result is the most fascinating one. Here we see a clear systematic \emph{decrease} in time usage as we \emph{increase} the number of edges in the graph. This is however expected after some careful analysis of the detailed parts of the algorithm. In particular, this row:
+$$
+h(V_2 \setminus N(Y_1)) \leftarrow h(V_2 \setminus N(Y_1)) + z^{|Y_1|}[Y_1\text{ is independent in }G]
+$$
+Here we see that if $Y_1$ is not independent, no calculation is made (addition with zero). With more edges in the graph $G$, we naturally have smaller likelihood of $Y_1$ being independent, and less calculations at this step. This also have the consequence that more of the values in the vector $h$ are zero, which in turn give even fewer calculations in the continuation of the algorithm.
+\\
+\vspace{4mm}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$dE$,
+ylabel=resident set (MB)]
+%\addplot table[x=df,y=vm] {../output/parsed_results/chr_pol_pari_chr_pol1_mem2};
+\addplot table[x=df,y=rss] {../output/parsed_results/chr_pol_pari_chr_pol1_mem2};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+Here we see a similar result as in the time graph. As $|E|$ (or $dE$) increases, we use less space also.
+
+\subsubsection{Test 3}
+\vspace{4mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$k$,
+ylabel=time (ms)]
+\addplot table[x=k,y=ut] {../output/parsed_results/chr_pol_pari_chr_pol1_time3};
+\addplot table[x=k,y=st] {../output/parsed_results/chr_pol_pari_chr_pol1_time3};
+%\addplot table[x=k,y=tte] {../output/parsed_results/chr_pol_pari_chr_pol1_time3};
+\end{axis}
+\end{tikzpicture}
+\\
+Also an interesting result, although perhaps not very unexpected. Taking larger powers naturally takes more time (more multiplications), but why we have such a variety between odd and even powers remains unclear. Note that the \emph{even} powers are the faster ones.\\
+\vspace{4mm}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$k$,
+ylabel=resident set (MB)]
+%\addplot table[x=k,y=vm] {../output/parsed_results/chr_pol_pari_chr_pol1_mem3};
+\addplot table[x=k,y=rss] {../output/parsed_results/chr_pol_pari_chr_pol1_mem3};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+Looking at the values of the $y$-axis, we see that this is more or less a constant curve. Not much changes as $k$ increases.
+
+\subsection{NTL}
+Write some text here.
+
+\subsubsection{Test 1}
+\vspace{3mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$n$,
+ylabel=time (ms)]
+\addplot table[x=n,y=ut] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time1};
+\addplot table[x=n,y=st] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time1};
+%\addplot table[x=n,y=tt] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time1};
+\end{axis}
+\end{tikzpicture}
+\\
+Not surprisingly, time shoots upwards really fast when we get sizeable values of $n$.\\
+\vspace{4mm}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$n$,
+ylabel=resident set / virtual memory (MB)]
+\addplot table[x=n,y=vm] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_mem1};
+\addplot table[x=n,y=rss] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_mem1};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+%And the same for memory usage. It is hard to see from this graph how much less the actual increase in memory is compared to an asymptotical $O(2^n)$.
+
+\subsubsection{Test 2}
+\vspace{4mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$dE$,
+ylabel=time (ms)]
+\addplot table[x=df,y=ut] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time2};
+\addplot table[x=df,y=st] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time2};
+%\addplot table[x=df,y=tt] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time2};
+\end{axis}
+\end{tikzpicture}
+\\
+%This result is the most fascinating one. Here we see a clear systematic \emph{decrease} in time usage as we \emph{increase} the number of edges in the graph. This is however expected after some careful analysis of the detailed parts of the algorithm. In particular, this row:
+$$
+h(V_2 \ N(Y_1)) \leftarrow h(V_2 \ N(Y_1)) + z^{|Y_1|}[Y_1\text{ is independent in }G]
+$$
+%Here we see that if $Y_1$ is not independent, no calculation is made (addition with zero). With more edges in the graph $G$, we naturally have smaller likelihood of $Y_1$ being independent, and less calculations at this step. This also have the consequence that more of the values in the vector $h$ are zero, which in turn give even fewer calculations in the continuation of the algorithm.
+\\
+\vspace{4mm}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$dE$,
+ylabel=resident set / virtual memory (MB)]
+\addplot table[x=df,y=vm] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_mem2};
+\addplot table[x=df,y=rss] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_mem2};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsubsection{Test 3}
+\vspace{4mm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$k$,
+ylabel=time (ms)]
+\addplot table[x=k,y=ut] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time3};
+\addplot table[x=k,y=st] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time3};
+%\addplot table[x=k,y=tte] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_time3};
+\end{axis}
+\end{tikzpicture}
+\\
+\vspace{4mm}
+\begin{tikzpicture}
+\begin{axis}[
+xlabel=$k$,
+ylabel=resident set / virtual memory (MB)]
+\addplot table[x=k,y=vm] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_mem3};
+\addplot table[x=k,y=rss] {../output/parsed_results/chr_pol_ntl_chr_pol_ntl_mem3};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsection{Naive}
+Not yet done.
+
+\newpage
+\begin{thebibliography}{9}
+\bibitem{cov_pack} \url{http://fileadmin.cs.lth.se/cs/Personal/Thore_Husfeldt/papers/lsfzt.pdf}
+\bibitem{gmp} \url{http://gmplib.org/}
+\bibitem{proc} \url{http://man7.org/linux/man-pages/man5/proc.5.html}
+\bibitem{ntl} \url{http://www.shoup.net/ntl/index.html}
+\bibitem{pari} \url{http://pari.math.u-bordeaux.fr/}
+\bibitem{toom-cook} \url{https://en.wikipedia.org/wiki/Toom\%E2\%80\%93Cook_multiplication}
+\end{thebibliography}
+
+\end{document}
