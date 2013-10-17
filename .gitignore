@@ -17,6 +17,8 @@
 
 # Don't include binaries. They are giving me a headache.
 xjobb/head/common/bins/
+# No need to keep track of all input formats
+xjobb/head/common/input/edgelists/
 
 # Dolphin file manager directory files. Not sure what they do
 .directory
