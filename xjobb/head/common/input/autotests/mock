@@ -1,10 +1,13 @@
 # Syntax:
 # bin/exec nbrI
-# k1 nbroftestsJ1 testfile1 testfile2 ... testfileJ1
-# k2 nbroftestsJ2 testfile1 testfile2 ... testfileJ2
+# nbroftestsJ1 testfile1 testfile2 ... testfileJ1
+# nbroftestsJ2 testfile1 testfile2 ... testfileJ2
 # ...
-# kI nbroftestsJI testfile1 testfile2 ... testfileJI
-bins/chr_pol_pari 3
-2 1 adjm/m_19_50_86
-3 1 adjm/m_19_50_86
-4 1 adjm/m_21_25_53
+# nbroftestsJI testfile1 testfile2 ... testfileJI
+bins/chr_pol_pari 6
+1 adjm/m_18_40
+1 adjm/m_19_40
+1 adjm/m_20_40
+1 adjm/m_21_40
+1 adjm/m_22_40
+1 adjm/m_23_40

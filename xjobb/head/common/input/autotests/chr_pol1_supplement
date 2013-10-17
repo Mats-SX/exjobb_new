@@ -1,0 +1,9 @@
+# Syntax:
+# bin/exec nbrI
+# k1 nbroftestsJ1 testfile1 testfile2 ... testfileJ1
+# k2 nbroftestsJ2 testfile1 testfile2 ... testfileJ2
+# ...
+# kI nbroftestsJI testfile1 testfile2 ... testfileJI
+bins/chr_pol_pari 1
+# test 1: k=3, n=4...24, dE=40, 2 < |E|= 110
+3 2 adjm/m_4_40 adjm/m_27_40
