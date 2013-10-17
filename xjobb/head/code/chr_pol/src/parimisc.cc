@@ -1,4 +1,5 @@
 #include <pari/pari.h>
+#include <sstream>
 #include "types.h"
 #include "interface.h"
 
@@ -24,15 +25,15 @@
  * gb (restore stack pointer)
  */
 
-sp interface::stp;
 
-void interface::save_sp() {
-	interface::stp = avma;
+void interface::save_sp(sp& lbot) {
+	lbot = avma;
 }
 
-void interface::gb(rval_t& r) {
-	sp lbot = avma;
+void interface::gb(rval_t& r, sp& lbot) {
+	//pari_printf("r before: %Ps\n", r);
 	r = gerepile(interface::stp, lbot, r);
+	//pari_printf("r after: %Ps\n", r);
 }
 
 /*
@@ -71,13 +72,12 @@ void interface::init_monomial(const u_int_t& deg, rval_t& pol) {
  * pol1 += pol2
  */
 void interface::add_assign(rval_t& pol1, rval_t& pol2) {
+	//pari_printf("pol1 before: %Ps\n pol2: %Ps\n", pol1, pol2);
 
 	pol1 = ZX_add(pol1, pol2);
 
-	/*
-	std::cout << "Result is: ";
-	pari_printf("%Ps\n", pol1);
-	*/
+	//pari_printf("  pol1 after: %Ps\n", pol1);
+	
 }
 
 void interface::mul_assign(rval_t& pol1, rval_t& pol2, const u_int_t& n) {
@@ -91,30 +91,66 @@ void interface::mul_assign(rval_t& pol1, rval_t& pol2, const u_int_t& n) {
 }
 
 void interface::power(rval_t& pol, const u_int_t& deg, const u_int_t& n) {
-
-	
 //	std::cout << "Powering ";
-//	pari_printf("%Ps", pol);
+//	pari_printf("pol before power: %Ps\n", pol);
 //	std::cout << " to " << deg << std::endl;
 
-	pol = gpowgs(pol, deg);	
+	pol = gpowgs(pol, deg);
 	// try gen_powu(pol, deg, NULL, sqr, mul) ?
 
+//	pari_printf("pol after power: %Ps\n", pol);
+//
 	// Truncate away all high-degree terms.
-	if (lg(pol) > n + 3)	
+	if (degpol(pol) > n) {
 		setlg(pol, n + 3);
+	}
 	
 //	std::cout << "Result: ";
 //	pari_printf("%Ps\n", pol);
 	
 }
 
-void interface::print_coeff(rval_t& pol, const u_int_t& n) {
-	pari_printf("%Ps\n", pol);
+std::string* interface::print_coeff(rval_t& pol, const u_int_t& n) {
+	//pari_printf("%Ps\n", pol);
+	std::string* s = new std::string(pari_sprintf("%Ps", leading_term(pol)));
+	return s;
 }
 
 void interface::flip_sign(rval_t& pol, int sign) {
 	if (sign > 0)
 		return;
 	pol = gmulgs(pol, sign);
+}
+	
+void interface::print_interpolate(std::string** _points, const u_int_t& n) {
+	std::cout << "Preparing to interpolate ... ";
+	GEN x = zerovec(n + 1);
+	GEN y = zerovec(n + 1);
+	for (u_int_t i = U_ZERO; i - 1 != n; ++i) {
+		gel(x, i+1) = stoi(i);
+		gel(y, i+1) = gp_read_str(_points[i]->c_str());
+	}
+
+	GEN p = compo(y, n+1);
+	do {
+		p = addsi(1, p);
+	} while (!isprime(p));
+	
+	std::cout << "interpolating ... ";
+	GEN chr_pol = FpV_polint(x, y, p, 0);
+	std::cout << "Done!\n";
+
+	std::cout << "Chromatic polynomial: " << std::endl;
+	for (u_int_t i = U_ZERO; i < n; ++i) {
+		if (i != U_ZERO) {
+			std::cout << " + ";
+		}
+		u_int_t index = n + 2 - i;
+		GEN coeff = gel(chr_pol, index);
+		if (i % 2)
+			coeff = subii(coeff, p);
+		pari_printf("%Ps", coeff);
+		std::cout << "*x^" << index - 2;
+	}
+	std::cout << std::endl;
 }

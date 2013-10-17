@@ -8,14 +8,15 @@
  */
 namespace interface {
 	extern sp stp;
-	void save_sp();
-	void gb(rval_t&);
+	void save_sp(sp&);
+	void gb(rval_t&, sp&);
 	void init_zero(rval_t&);
 	void init_monomial(const u_int_t&, rval_t&);
 	void add_assign(rval_t&, rval_t&);
 	void mul_assign(rval_t&, rval_t&, const u_int_t&);
 	void power(rval_t&, const u_int_t&, const u_int_t&);
-	void print_coeff(rval_t&, const u_int_t&);
+	std::string* print_coeff(rval_t&, const u_int_t&);
+	void print_interpolate(std::string**, const u_int_t&);
 	void flip_sign(rval_t&, int);
 }
 

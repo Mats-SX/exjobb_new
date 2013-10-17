@@ -3,15 +3,19 @@
 
 #include "types.h"
 #include <fstream>
+#include <string>
 
 namespace utils {
+
+	/* Optimizations */
+	bool trivial(const u_int_t&, const u_int_t&, bool**);
 
 	/* FZT */
 	void fast_down_zeta_transform_exp_space(const u_int_t&, rval_list_t&);
 	void fast_up_zeta_transform_exp_space(const u_int_t&, rval_list_t&);
 
-	void small_space_chr_pol(const u_int_t&, const u_int_t&, bool**);
-	
+	std::string* count_colourings_small_space(const u_int_t&, const u_int_t&, bool**);
+
 	/* Sets */
 	u_int_t size_of(const set_t&);
 	bool is_empty(const set_t&);
@@ -24,6 +28,8 @@ namespace utils {
 	u_int_t exp2(const u_int_t&);
 	void part_n(const u_int_t&, u_int_t&, u_int_t&);
 	void parse(std::ifstream&, bool**, u_int_t&);
+
+//	void print_interpolate(std::string**, const u_int_t&);
 }
 
 

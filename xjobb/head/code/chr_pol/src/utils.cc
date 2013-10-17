@@ -6,6 +6,8 @@
 
 using namespace interface;
 
+sp interface::stp;
+
 /* FZT */
 
 /*
@@ -22,7 +24,7 @@ using namespace interface;
 void utils::fast_down_zeta_transform_exp_space(const u_int_t& n, rval_list_t& f) {
 	for (u_int_t j = U_ONE; j <= n; ++j) {
 		u_int_t index = U_ZERO;
-		const u_int_t step = exp2(j - 1);	// 2^(j-1)
+		u_int_t step = exp2(j - 1);	// 2^(j-1)
 		while (index != f.size) {
 			index += step;
 			for (u_int_t i = U_ZERO; i < step; ++i) {
@@ -54,19 +56,50 @@ void utils::fast_up_zeta_transform_exp_space(const u_int_t& n, rval_list_t& f) {
 	return;
 }
 
+/*
+ * Optimization.
+ * If q == 0, 0 colourings.
+ * If q == 1, 0 colourings iff |E| >= 1.
+ *
+ * Time complexity is (1/2)*n^2 => O(n^2) as we scan through (half of) an n*n matrix
+ */
+bool utils::trivial(const u_int_t& n, const u_int_t& q, bool** matrix) {
+	if (q == U_ZERO) {	// 0 colourings using 0 colours.
+		return true;
+	} else if (q == U_ONE) {
+		for (u_int_t i = U_ZERO; i != n; ++i) {
+			for (u_int_t j = i + 1; j != n; ++j) {
+				if ((*matrix)[i * n + j]) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 
 /*
- * Computes the chromatic polynomial of the graph represented by the adjacency
- * matrix matrix, with n vertices and using k colours. The number of ways to colour
- * the graph with k colours is printed to screen as a last step.
+ * Computes the number of ways r of colouring the graph of n vertices, represented by the
+ * adjacency matrix matrix, with q colours. A pointer to a string representation of r 
+ * is returned.
  */
-void utils::small_space_chr_pol(const u_int_t& n, const u_int_t& k, bool** matrix) {
+std::string* utils::count_colourings_small_space(
+		const u_int_t& n, 
+		const u_int_t& q, 
+		bool** matrix) {
+
+	/* Handle trivial values of q (current: 0,1,2,3) */
+	/* This is done in polynomial time (generally quadratic) */
+	if (trivial(n, q, matrix)) {
+		return &ZERO_STR;
+	}
 
 	// partition the vertices into V1 and V2, of sizes n1 and n2 respectively
 	u_int_t n1, n2;
 	part_n(n, n1, n2);
 
-	std::cout << "n1: " << n1 << ", n2: " << n2 << std::endl;
+//	 << "n1: " << n1 << ", n2: " << n2 << std::endl;
 
 	u_int_t two_to_the_n1 = exp2(n1);
 	u_int_t two_to_the_n2 = exp2(n2);
@@ -74,19 +107,18 @@ void utils::small_space_chr_pol(const u_int_t& n, const u_int_t& k, bool** matri
 	set_t v1 = two_to_the_n1 - 1 ;
 	set_t v2 = exp2(n) - two_to_the_n1;
 
-	save_sp();
 	
 	// 1.
 	rval_t r;
 	init_zero(r);
 
+	save_sp(interface::stp);
 	// {{ 2. For each subset X1 of V1, do }}
 	for (set_t x1 = EMPTY_SET; x1 <= v1; ++x1) {
 
-
 		// Data structures
-		rval_list_t h(two_to_the_n2);
 		rval_list_t l(two_to_the_n2);
+		rval_list_t h(two_to_the_n2);
 		
 		// {{ a) For each subset Z2 of V2, set h(Z2) <- 0 }}
 		for (u_int_t i = U_ZERO; i < two_to_the_n2; ++i) {
@@ -118,6 +150,8 @@ void utils::small_space_chr_pol(const u_int_t& n, const u_int_t& k, bool** matri
 			}
 		}
 
+
+
 		// {{ c) For each subset Y2 of V2,
 		// set l(Y2) <- z^(|Y2|) if Y2 independent in G }}
 		for (u_int_t i = U_ZERO; i < two_to_the_n2; ++i) {
@@ -140,24 +174,28 @@ void utils::small_space_chr_pol(const u_int_t& n, const u_int_t& k, bool** matri
 		// {{ e) Set h <- gS }}
 		utils::fast_down_zeta_transform_exp_space(n2, h);
 
+		sp lbot;
 		// {{ For each subset X2 of V2,
 		// set r <- r + (-1)^(n-|X1|-|X2|) * j(X2)^k }}
 		for (u_int_t i = U_ZERO; i < two_to_the_n2; ++i) {
 			set_t x2 = i * two_to_the_n1;
 			int exponent = n - utils::size_of(x1) - utils::size_of(x2);
 			int sign = utils::exp_neg_one(exponent);
-			power(h[i], k, n);
+		
+			power(h[i], q, n);
 			flip_sign(h[i], sign);
+			
+			save_sp(lbot);
+
 			add_assign(r, h[i]);
 		}
-
-		gb(r);
+		
+		gb(r, lbot);
 	}
 
 	// { 3. Return the coefficient of z^n in r }}
 	
-	print_coeff(r, n);
-	return;
+	return print_coeff(r, n);
 }
 
 /* Sets */
@@ -348,3 +386,4 @@ void utils::part_n(const u_int_t& n, u_int_t& n1, u_int_t& n2) {
 		// fix for larger types
 	}
 }
+

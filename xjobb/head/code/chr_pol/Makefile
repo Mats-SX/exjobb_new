@@ -44,9 +44,23 @@ clean:
 cleanest: clean
 	$(RM) $(DFILES) 
 
+# Compilation
+chr_pol_pari.o: chr_pol_pari.cc utils.cc parimisc.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -DPARI -c -o $@ $<
+pariutils.o: utils.cc parimisc.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -DPARI -c -o $@ $<
+parimisc.o: parimisc.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -DPARI -c -o $@ $<
+chr_pol_ntl.o: chr_pol_ntl.cc utils.cc ntlmisc.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -DNTLLIB -c -o $@ $<
+ntlutils.o: utils.cc ntlmisc.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -DNTLLIB -c -o $@ $<
+ntlmisc.o: ntlmisc.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -DNTLLIB -c -o $@ $<
+
 # Linking
-chr_pol_pari: chr_pol_pari.o utils.o parimisc.o
-chr_pol_ntl: chr_pol_ntl.o utils.o ntlmisc.o
+chr_pol_pari: chr_pol_pari.o pariutils.o parimisc.o
+chr_pol_ntl: chr_pol_ntl.o ntlutils.o ntlmisc.o
 
 # Removing dependencies on .h-files:
 
