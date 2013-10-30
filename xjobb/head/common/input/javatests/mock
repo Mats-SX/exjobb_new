@@ -1,0 +1,19 @@
+# Format:
+# Executable on its own line, must be first non-comment in file.
+# All lines starting with # are comments.
+#
+# A test line: <t> <adjm>
+# Where t is nbr of threads and adjm is the name of one of the adjacency matrices
+# present in input/adjm 
+# A line with @ means a new test begins, which will get its own output file.
+# A line with $ marks the end of the test protocol.
+bins/chr_pol_pari
+# This is the mock file
+@
+12 m_14_75
+10 m_13_40
+1 m_8_40
+@
+12 m_16_75
+11 m_15_75
+$
