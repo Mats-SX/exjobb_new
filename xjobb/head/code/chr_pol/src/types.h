@@ -1,12 +1,14 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <thread>
 #ifdef NTLLIB
 #include <NTL/ZZX.h>
 #endif
 
 #ifdef PARI
 #include <pari/pari.h>
+#include <pthread.h>
 #endif
 
 static const bool N_LESS_64		= true;
@@ -24,13 +26,15 @@ static const sign_t S_N_ONE		= -1l;
 
 static std::string ZERO_STR("0");
 
+typedef std::thread thread_t;
 #ifdef NTLLIB
-typedef void* sp;
+typedef void* pth_t;
 typedef NTL::ZZX rval_t;
 #endif
 #ifdef PARI
 typedef GEN rval_t;
-typedef pari_sp sp;
+typedef pari_thread pth_t;
+static u_int_t PARI_STACK_CHUNK = 1000000ul;
 #endif
 
 template <class T>

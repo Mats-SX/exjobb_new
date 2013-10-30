@@ -22,15 +22,10 @@
  * powering (power)
  * output of highest-def coefficient (print_last_coeff)
  * sign-flip (flip-sign)
- *
- * Garbage collection (not for NTL)
  */
 
-void interface::gb(rval_t&, sp&) {}
-void interface::save_sp(sp&) {}
-
 /*
- * pol is a GEN
+ * pol is a ZZX 
  */
 void interface::init_zero(rval_t&) {
 	//std::cout << "Initializing zero-pol... " << std::endl;
@@ -65,14 +60,15 @@ void interface::power(rval_t& pol, const u_int_t& deg, const u_int_t& n) {
 	for (u_int_t i = U_ZERO; i < deg - U_ONE; ++i) {
 		pol *= cpy;
 	}
-	if (NTL::deg(pol) > n)
+	if (NTL::deg(pol) > n)	// OK with signed/unsigned comparison
 		pol.SetLength(n+1);
 }
 
-std::string* interface::print_coeff(rval_t& pol, const u_int_t& n) {
+std::string* interface::print_coeff(rval_t& pol, const u_int_t&) {
 	//std::cout << pol[n] << std::endl;
 	std::ostringstream os;
-	os << pol[n];
+//	std::cout << "pol:" << pol << ", n:" << n << ", deg:" << NTL::deg(pol) << std::endl;
+	os << NTL::LeadCoeff(pol);
 	std::string* s = new std::string(os.str());
 	//std::cout << "Evaluated x(t) to " << *s << std::endl;
 	return s;
@@ -95,7 +91,7 @@ void interface::print_interpolate(std::string** _points, const u_int_t& n) {
 	std::istringstream iss(*_points[n]);
 	iss >> prime;
 
-	++prime;
+	NTL::NextPrime(prime, prime);
 
 	NTL::ZZ_p::init(prime);
 
@@ -139,5 +135,4 @@ void interface::print_interpolate(std::string** _points, const u_int_t& n) {
 		std::cout << coeffs[index] << "*x^" << index;
 	}
 	std::cout << std::endl;
-
 }

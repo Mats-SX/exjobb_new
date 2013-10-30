@@ -7,9 +7,6 @@
  * library (such as NTL, PARI, etc).
  */
 namespace interface {
-	extern sp stp;
-	void save_sp(sp&);
-	void gb(rval_t&, sp&);
 	void init_zero(rval_t&);
 	void init_monomial(const u_int_t&, rval_t&);
 	void add_assign(rval_t&, rval_t&);

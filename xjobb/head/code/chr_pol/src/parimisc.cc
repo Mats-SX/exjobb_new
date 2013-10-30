@@ -26,16 +26,6 @@
  */
 
 
-void interface::save_sp(sp& lbot) {
-	lbot = avma;
-}
-
-void interface::gb(rval_t& r, sp& lbot) {
-	//pari_printf("r before: %Ps\n", r);
-	r = gerepile(interface::stp, lbot, r);
-	//pari_printf("r after: %Ps\n", r);
-}
-
 /*
  * pol is a GEN
  */
@@ -101,7 +91,7 @@ void interface::power(rval_t& pol, const u_int_t& deg, const u_int_t& n) {
 //	pari_printf("pol after power: %Ps\n", pol);
 //
 	// Truncate away all high-degree terms.
-	if (degpol(pol) > n) {
+	if (lg(pol) > n + 3) {
 		setlg(pol, n + 3);
 	}
 	
@@ -110,9 +100,11 @@ void interface::power(rval_t& pol, const u_int_t& deg, const u_int_t& n) {
 	
 }
 
-std::string* interface::print_coeff(rval_t& pol, const u_int_t& n) {
+std::string* interface::print_coeff(rval_t& pol, const u_int_t&) {
 	//pari_printf("%Ps\n", pol);
-	std::string* s = new std::string(pari_sprintf("%Ps", leading_term(pol)));
+	char* c = GENtostr(leading_term(pol));
+	std::string* s = new std::string(c);
+	free(c);
 	return s;
 }
 

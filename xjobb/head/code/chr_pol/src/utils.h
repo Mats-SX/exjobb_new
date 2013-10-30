@@ -9,12 +9,16 @@ namespace utils {
 
 	/* Optimizations */
 	bool trivial(const u_int_t&, const u_int_t&, bool**);
+	void parallel(rval_t*, const set_t&, const set_t&, const u_int_t&, const u_int_t&, 
+			const set_t&, const u_int_t&, const u_int_t&, 
+			const u_int_t&, bool**, pth_t*);
 
 	/* FZT */
 	void fast_down_zeta_transform_exp_space(const u_int_t&, rval_list_t&);
 	void fast_up_zeta_transform_exp_space(const u_int_t&, rval_list_t&);
 
-	std::string* count_colourings_small_space(const u_int_t&, const u_int_t&, bool**);
+	std::string* count_colourings_small_space(const u_int_t&, const u_int_t&, 
+			bool**, u_int_t&);
 
 	/* Sets */
 	u_int_t size_of(const set_t&);
@@ -29,7 +33,6 @@ namespace utils {
 	void part_n(const u_int_t&, u_int_t&, u_int_t&);
 	void parse(std::ifstream&, bool**, u_int_t&);
 
-//	void print_interpolate(std::string**, const u_int_t&);
 }
 
 

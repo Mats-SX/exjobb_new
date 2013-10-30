@@ -1,12 +1,11 @@
 #include <iostream>
+#include <unistd.h>
 
 #include "utils.h"
 #include "interface.h"
 #include "types.h"
 
 using namespace interface;
-
-sp interface::stp;
 
 /* FZT */
 
@@ -87,7 +86,8 @@ bool utils::trivial(const u_int_t& n, const u_int_t& q, bool** matrix) {
 std::string* utils::count_colourings_small_space(
 		const u_int_t& n, 
 		const u_int_t& q, 
-		bool** matrix) {
+		bool** matrix,
+		u_int_t& nbr_procs) {
 
 	/* Handle trivial values of q (current: 0,1,2,3) */
 	/* This is done in polynomial time (generally quadratic) */
@@ -99,7 +99,7 @@ std::string* utils::count_colourings_small_space(
 	u_int_t n1, n2;
 	part_n(n, n1, n2);
 
-//	 << "n1: " << n1 << ", n2: " << n2 << std::endl;
+//	std::cout << "n1: " << n1 << ", n2: " << n2 << std::endl;
 
 	u_int_t two_to_the_n1 = exp2(n1);
 	u_int_t two_to_the_n2 = exp2(n2);
@@ -107,19 +107,114 @@ std::string* utils::count_colourings_small_space(
 	set_t v1 = two_to_the_n1 - 1 ;
 	set_t v2 = exp2(n) - two_to_the_n1;
 
+	set_t start = EMPTY_SET;
+	set_t end = EMPTY_SET - 1;
+
+	//std::cout << "v1 = " << v1 << std::endl;
+
 	
+	// 2. Iterate over subsets of V1 in parallel
+	
+	if (nbr_procs > two_to_the_n1) {
+		nbr_procs = two_to_the_n1;
+	}
+
+	u_int_t slice_size = two_to_the_n1 / nbr_procs;
+	rval_t* rvals = new rval_t[nbr_procs];
+	thread_t* threads = new thread_t[nbr_procs];
+	pth_t* pths = new pth_t[nbr_procs];
+	
+	for (u_int_t i = U_ZERO; i < nbr_procs; ++i) {
+	//	std::cout << "starting thread loop..." << std::endl;
+		init_zero(rvals[i]);
+	
+#ifdef PARI
+		pari_thread p_th;
+		u_int_t stack_size = ((PARI_STACK_CHUNK * n * n) 
+				/ (nbr_procs * PARI_STACK_CHUNK)) * PARI_STACK_CHUNK;
+		pari_thread_alloc(&p_th, stack_size, NULL);
+		pths[i] = p_th;
+#endif
+		// special treatment for "last" thread, which
+		// needs to take all "leftover" iterations
+		// because iteration space is not an even 
+		// multiple of slice_size (typically)
+		if (i == nbr_procs - U_ONE) {
+			start = end + U_ONE;	// one after prev threads end
+			end = v1;
+		} else {
+			start = EMPTY_SET + slice_size * i;
+			end = start + slice_size - U_ONE;
+		}
+
+		//std::cout << "Thread " << i << " started with start = " << start << 
+		//	" and end = " << end << std::endl;
+
+		threads[i] = std::thread(parallel, &rvals[i], start, end, 
+				two_to_the_n1, two_to_the_n2, 
+				v2, n, n2, q, matrix, &pths[i]);
+
+	}
+
+	for (u_int_t i = U_ZERO; i < nbr_procs; ++i) {
+		threads[i].join();
+	}
+	delete[] threads;
+
+	//std::cout << "If we get here thats a good thing" << std::endl;
+
 	// 1.
 	rval_t r;
 	init_zero(r);
 
-	save_sp(interface::stp);
+	for (u_int_t i = U_ZERO; i < nbr_procs; ++i) {
+//		std::cout << rvals[i] << std::endl;
+		add_assign(r, rvals[i]);
+	}
+	delete[] rvals;
+
+#ifdef PARI
+	for (u_int_t i = U_ZERO; i < nbr_procs; ++i) {
+		pari_thread_free(&pths[i]);
+	}
+	delete[] pths;
+#endif
+	// { 3. Return the coefficient of z^n in r }}
+
+	return print_coeff(r, n);
+	
+}
+
+void utils::parallel(
+		rval_t* r,
+		const set_t& start,
+		const set_t& end,
+		const u_int_t& two_to_the_n1,
+		const u_int_t& two_to_the_n2,
+		const set_t& v2,
+		const u_int_t& n,
+		const u_int_t& n2,
+		const u_int_t& q,
+		bool** matrix,
+		pth_t* pth) {
+
+//	std::cout << "Im a thread with [start, end] = [" << start << ", " << end << "]\n";
+
+#ifdef PARI
+	pari_thread_start(pth);
+#endif	
 	// {{ 2. For each subset X1 of V1, do }}
-	for (set_t x1 = EMPTY_SET; x1 <= v1; ++x1) {
+
+	for (set_t x1 = start; x1 <= end; ++x1) {
+
+#ifdef PARI
+		pari_sp ltop = avma;
+#endif
 
 		// Data structures
 		rval_list_t l(two_to_the_n2);
 		rval_list_t h(two_to_the_n2);
-		
+
 		// {{ a) For each subset Z2 of V2, set h(Z2) <- 0 }}
 		for (u_int_t i = U_ZERO; i < two_to_the_n2; ++i) {
 			init_zero(h[i]);
@@ -140,25 +235,23 @@ std::string* utils::count_colourings_small_space(
 				// if Y1 is independent in G
 				if (utils::independent(y1, matrix, n)) {
 					rval_t p;
-					init_monomial(utils::size_of(y1), p);
+					init_monomial(size_of(y1), p);
 					set_t neighbours = EMPTY_SET;
-					utils::neighbours_of(y1, matrix, n, neighbours);
-					
+					neighbours_of(y1, matrix, n, neighbours);
+
 					add_assign(h[(v2 & (~ neighbours)) / two_to_the_n1], p);
 
 				}
 			}
 		}
 
-
-
 		// {{ c) For each subset Y2 of V2,
 		// set l(Y2) <- z^(|Y2|) if Y2 independent in G }}
 		for (u_int_t i = U_ZERO; i < two_to_the_n2; ++i) {
 			set_t y2 = i * two_to_the_n1;
-			
+
 			if (utils::independent(y2, matrix, n)) {
-				init_monomial(utils::size_of(y2), l[i]);
+				init_monomial(size_of(y2), l[i]);
 			} else {
 				init_zero(l[i]);
 			}
@@ -170,32 +263,37 @@ std::string* utils::count_colourings_small_space(
 		for (u_int_t i = U_ZERO; i < two_to_the_n2; ++i) {
 			mul_assign(h[i], l[i], n);
 		}
-
+		
 		// {{ e) Set h <- gS }}
 		utils::fast_down_zeta_transform_exp_space(n2, h);
 
-		sp lbot;
+#ifdef PARI
+		pari_sp lbot = avma;
+#endif
 		// {{ For each subset X2 of V2,
 		// set r <- r + (-1)^(n-|X1|-|X2|) * j(X2)^k }}
 		for (u_int_t i = U_ZERO; i < two_to_the_n2; ++i) {
 			set_t x2 = i * two_to_the_n1;
 			int exponent = n - utils::size_of(x1) - utils::size_of(x2);
 			int sign = utils::exp_neg_one(exponent);
-		
+
 			power(h[i], q, n);
 			flip_sign(h[i], sign);
-			
-			save_sp(lbot);
 
-			add_assign(r, h[i]);
+#ifdef PARI
+			lbot = avma;
+#endif
+			add_assign(*r, h[i]);
 		}
-		
-		gb(r, lbot);
-	}
 
-	// { 3. Return the coefficient of z^n in r }}
-	
-	return print_coeff(r, n);
+#ifdef PARI
+		(*r) = gerepile(ltop, lbot, *r);
+#endif
+		//std::cout << "I finished!" << std::endl;
+	}
+#ifdef PARI
+	pari_thread_close();
+#endif
 }
 
 /* Sets */
@@ -251,11 +349,11 @@ void utils::neighbours_of(const set_t& set, bool** matrix, const u_int_t& n, set
 	}
 
 	/* Only works if the graph is connected.
-	if (set == exp2(n) - U_ONE) {
-		neighbours = exp2(n) - U_ONE;
-		return;
-	}
-	*/
+	   if (set == exp2(n) - U_ONE) {
+	   neighbours = exp2(n) - U_ONE;
+	   return;
+	   }
+	   */
 	set_list_t* list = members_in(set);
 	for (u_int_t i = U_ZERO; i < list->size; ++i) {
 		// some iterations here are unnecessary under certain conditions.
@@ -272,6 +370,7 @@ void utils::neighbours_of(const set_t& set, bool** matrix, const u_int_t& n, set
 			}
 		}
 	}
+	delete list;
 }
 
 /*
@@ -299,10 +398,12 @@ bool utils::independent(const set_t& set, bool** matrix, const u_int_t& n) {
 	for (u_int_t i = U_ZERO; i < list->size; ++i) {
 		for (u_int_t j = i + U_ONE; j < list->size; ++j) {
 			if ((*matrix)[n * (*list)[i] + (*list)[j]]) {
+				delete list;
 				return false;
 			}
 		}
 	}
+	delete list;
 	return true;
 }
 
@@ -330,7 +431,7 @@ bool utils::independent(const set_t& set, bool** matrix, const u_int_t& n) {
 set_list_t* utils::members_in(const set_t& set) {
 	u_int_t size = size_of(set);
 	set_list_t* list = new set_list_t(size);
-	
+
 	set_t temp = set;	
 	u_int_t v = U_ZERO;
 	for (u_int_t c = U_ZERO; c != size; ++v, temp = temp >> 1) {

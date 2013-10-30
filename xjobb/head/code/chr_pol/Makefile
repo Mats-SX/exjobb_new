@@ -18,11 +18,12 @@ BIN		= $(HOME)common/bins/
 LDLIBS		+= -lpari		# For PARI links
 LDLIBS		+= -lntl		# For NTL links
 LDLIBS		+= -lgmpxx -lgmp	# For GMP links
+LDLIBS		+= -lpthread		# For c++11 threads
 
 # compiler and preprocessor flags
 CXX		= g++
 CC		= g++
-CXXFLAGS 	+= -Wall -Wextra -pedantic-errors -Wold-style-cast
+CXXFLAGS 	+= -Wall -Wextra -pedantic-errors -std=c++11 -pthread
 CXXFLAGS	+= -m64 -mtune=corei7-avx -march=corei7-avx
 
 # Programs
@@ -35,7 +36,7 @@ DFILES		= $(addprefix $(VPATH), $(wildcard *.d))
 
 all: $(PRGS)
 
-install:
+install: all
 	mv $(PRGS) $(BIN) 
 
 clean:
