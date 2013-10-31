@@ -3,22 +3,18 @@
 
 #include "types.h"
 #include <fstream>
-#include <string>
 
 namespace utils {
 
 	/* Optimizations */
 	bool trivial(const u_int_t&, const u_int_t&, bool**);
-	void parallel(rval_t*, const set_t&, const set_t&, const u_int_t&, const u_int_t&, 
-			const set_t&, const u_int_t&, const u_int_t&, 
-			const u_int_t&, bool**, pth_t*);
 
 	/* FZT */
 	void fast_down_zeta_transform_exp_space(const u_int_t&, rval_list_t&);
 	void fast_up_zeta_transform_exp_space(const u_int_t&, rval_list_t&);
 
 	std::string* count_colourings_small_space(const u_int_t&, const u_int_t&, 
-			bool**, u_int_t&);
+			bool**);
 
 	/* Sets */
 	u_int_t size_of(const set_t&);

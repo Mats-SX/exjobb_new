@@ -19,10 +19,6 @@
  * powering (power)
  * output of highest-def coefficient (print_last_coeff)
  * sign-flip (flip-sign)
- *
- * garbage collection:
- * save_sp (save stack pointer)
- * gb (restore stack pointer)
  */
 
 

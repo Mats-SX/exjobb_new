@@ -7,7 +7,7 @@
 #include "interface.h"
 
 // DEBUG
-#include <iostream>
+//#include <iostream>
 
 /*
  * Various functions for interfacing PARI with the program.
