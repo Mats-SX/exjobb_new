@@ -1,0 +1,16 @@
+# Lines starting with '#' are comments.
+# 
+# Format:
+# <nbr_rows>
+# <n> <dm>
+# ...
+# 
+# <nbr_rows> specifies the number of rows to be read.
+# Each row <n> <dm> specifies a (random) graph to be generated with
+# n vertices and dm density of edges. 
+# n > 0 is an integer, 0 <= dm <= 100 is an integer.
+#
+# Generates all graphs specified in the report and file "input/autotests/pari_all"
+2
+25 75
+30 75

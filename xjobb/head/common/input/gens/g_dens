@@ -1,0 +1,24 @@
+# Lines starting with '#' are comments.
+# 
+# Format:
+# <nbr_rows>
+# <n> <dm>
+# ...
+# 
+# <nbr_rows> specifies the number of rows to be read.
+# Each row <n> <dm> specifies a (random) graph to be generated with
+# n vertices and dm density of edges. 
+# n > 0 is an integer, 0 <= dm <= 100 is an integer.
+#
+# Generates some ''dense'' graphs
+10
+17 60
+17 65
+17 70
+17 73
+17 74
+17 75
+17 76
+17 77
+17 80
+17 85
