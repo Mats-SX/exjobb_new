@@ -205,11 +205,11 @@ void utils::parallel(
 #endif	
 	// {{ 2. For each subset X1 of V1, do }}
 
+#ifdef PARI
+	pari_sp ltop = avma;
+#endif
 	for (set_t x1 = start; x1 <= end; ++x1) {
 
-#ifdef PARI
-		pari_sp ltop = avma;
-#endif
 
 		// Data structures
 		rval_list_t l(two_to_the_n2);

@@ -1,7 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <signal.h>
-#include <unistd.h>
 
 #include "types.h"
 #include "utils.h"
@@ -33,11 +31,10 @@ int main(int argc, char** argv) {
 		points[i] = utils::count_colourings_small_space(n, i, &matrix, threads);
 		cout << " = " << *points[i] << endl;
 	}
+	delete[] matrix;
 
 	/* Interpolate the evaluated points */
 	interface::print_interpolate(points, n);
-
-//	cout << "Now pausing for collection of statistics. PID is " << getpid() << endl;
-//	cout << "Kill me with 'kill -s 9 <PID>' if necessary." << endl;
-//	raise(SIGSTOP);
+	
+	delete[] points;
 }

@@ -42,10 +42,5 @@ int main(int argc, char** argv) {
 
 	pari_close();
 	delete[] points;
-
-	
-//	cout << "Now pausing for collection of statistics. PID is " << getpid() << endl;
-//	cout << "Kill me with 'kill -s 9 <PID>' if necessary." << endl;
-//	raise(SIGSTOP);
 	
 }
