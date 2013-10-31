@@ -16,9 +16,15 @@
 *.d
 
 # Don't include binaries. They are giving me a headache.
+# They are instead released and kept track of in another place
 xjobb/head/common/bins/
+
 # No need to keep track of all input formats
 xjobb/head/common/input/edgelists/
+
+# I've decided to deprecate autotests.
+# We do not need to keep track of its files.
+xjobb/head/common/input/autotests/
 
 # Dolphin file manager directory files. Not sure what they do
 .directory
