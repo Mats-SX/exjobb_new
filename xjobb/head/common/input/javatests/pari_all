@@ -9,7 +9,7 @@
 # A line with $ marks the end of the test protocol.
 #
 # This is the ALL file. It specifies all tests for chr_pol_pari (parallelized version)
-bins/chr_pol_pari
+released/pari/bhkk-pari-0.2
 # Dense matrices, increasing n
 @
 12 m_4_75
