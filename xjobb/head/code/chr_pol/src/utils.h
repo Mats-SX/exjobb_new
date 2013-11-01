@@ -12,12 +12,13 @@ namespace utils {
 	void parallel(rval_t*, const set_t&, const set_t&, const u_int_t&, const u_int_t&, 
 			const set_t&, const u_int_t&, const u_int_t&, 
 			const u_int_t&, bool**, pth_t*);
+	u_int_t min_max_clique(const u_int_t&, const u_int_t&);
 
 	/* FZT */
 	void fast_down_zeta_transform_exp_space(const u_int_t&, rval_list_t&);
 	void fast_up_zeta_transform_exp_space(const u_int_t&, rval_list_t&);
 
-	std::string* count_colourings_small_space(const u_int_t&, const u_int_t&, 
+	std::string* count_colourings_small_space(const u_int_t&, const u_int_t&, const u_int_t&, 
 			bool**, u_int_t&);
 
 	/* Sets */

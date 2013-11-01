@@ -77,6 +77,18 @@ bool utils::trivial(const u_int_t& n, const u_int_t& q, bool** matrix) {
 	return false;
 }
 
+u_int_t utils::min_max_clique(const u_int_t& n, const u_int_t& m) {
+	u_int_t m_max = ((n * (n - 1)) / 2);
+	u_int_t n_half = n / 2;
+	if (m > (m_max - n_half)) { 		// best case
+		return (n + m - m_max);
+	} else if (m > ((n * n) / 4)) { 	// 2nd best case
+		return (n_half - ((m_max - n_half - m) / n_half));
+	} else {				// too sparse graph :(
+		return 2;
+	}
+}
+
 
 /*
  * Computes the number of ways r of colouring the graph of n vertices, represented by the
@@ -84,7 +96,8 @@ bool utils::trivial(const u_int_t& n, const u_int_t& q, bool** matrix) {
  * is returned.
  */
 std::string* utils::count_colourings_small_space(
-		const u_int_t& n, 
+		const u_int_t& n,
+		const u_int_t& m,	
 		const u_int_t& q, 
 		bool** matrix,
 		u_int_t& nbr_procs) {
@@ -92,6 +105,12 @@ std::string* utils::count_colourings_small_space(
 	/* Handle trivial values of q (current: 0,1,2,3) */
 	/* This is done in polynomial time (generally quadratic) */
 	if (trivial(n, q, matrix)) {
+		return &ZERO_STR;
+	}
+
+	u_int_t w_min = min_max_clique(n, m);	// find least possible clique nbr
+	
+	if (q < w_min) {
 		return &ZERO_STR;
 	}
 
@@ -205,11 +224,11 @@ void utils::parallel(
 #endif	
 	// {{ 2. For each subset X1 of V1, do }}
 
+#ifdef PARI
+	pari_sp ltop = avma;
+#endif
 	for (set_t x1 = start; x1 <= end; ++x1) {
 
-#ifdef PARI
-		pari_sp ltop = avma;
-#endif
 
 		// Data structures
 		rval_list_t l(two_to_the_n2);
