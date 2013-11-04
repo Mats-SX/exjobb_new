@@ -15,6 +15,9 @@
 # header info files
 *.d
 
+# Dolphin file manager directory files. Not sure what they do
+.directory
+
 # Don't include binaries. They are giving me a headache.
 # They are instead released and kept track of in another place
 xjobb/head/common/bins/
@@ -29,5 +32,6 @@ xjobb/head/common/input/autotests/
 # All files with 'mock' in their name aren't needed in the repo
 *mock*
 
-# Dolphin file manager directory files. Not sure what they do
-.directory
+# Files in 'output' are from now on determined 'temporary'
+# Consequently, they shouldn't be version controlled.
+xjobb/head/common/output/
