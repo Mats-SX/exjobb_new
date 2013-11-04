@@ -1,0 +1,80 @@
+# Format:
+# Executable on its own line, must be first non-comment in file.
+# All lines starting with # are comments.
+#
+# A test line: <t> <adjm>
+# Where t is nbr of threads and adjm is the name of one of the adjacency matrices
+# present in input/adjm 
+# A line with @ means a new test begins, which will get its own output file.
+# A line with $ marks the end of the test protocol.
+released/pari/bhkk-pari-0.1
+# Dense matrices, increasing n
+@
+0 m_4_75
+0 m_5_75
+0 m_6_75
+0 m_7_75
+0 m_8_75
+0 m_9_75
+0 m_10_75
+0 m_11_75
+0 m_12_75
+0 m_13_75
+0 m_14_75
+0 m_15_75
+0 m_16_75
+0 m_17_75
+0 m_18_75
+0 m_19_75
+0 m_20_75
+0 m_21_75
+0 m_22_75
+0 m_23_75
+# Sparse matrices, increasing n
+@
+0 m_4_40
+0 m_5_40
+0 m_6_40
+0 m_7_40
+0 m_8_40
+0 m_9_40
+0 m_10_40
+0 m_11_40
+0 m_12_40
+0 m_13_40
+0 m_14_40
+0 m_15_40
+0 m_16_40
+0 m_17_40
+0 m_18_40
+0 m_19_40
+0 m_20_40
+0 m_21_40
+0 m_22_40
+0 m_23_40
+# Increasing density
+@
+0 m_19_5
+0 m_19_10
+0 m_19_15
+0 m_19_20
+0 m_19_25
+0 m_19_30
+0 m_19_35
+0 m_19_40
+0 m_19_45
+0 m_19_50
+0 m_19_55
+0 m_19_60
+0 m_19_65
+0 m_19_70
+0 m_19_75
+0 m_19_80
+0 m_19_85
+0 m_19_90
+0 m_19_95
+0 m_19_100
+# A huge instance
+@
+0 m_25_75
+$
