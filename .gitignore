@@ -26,5 +26,8 @@ xjobb/head/common/input/edgelists/
 # We do not need to keep track of its files.
 xjobb/head/common/input/autotests/
 
+# All files with 'mock' in their name aren't needed in the repo
+*mock*
+
 # Dolphin file manager directory files. Not sure what they do
 .directory
