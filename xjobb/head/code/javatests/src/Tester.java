@@ -47,7 +47,9 @@ public class Tester {
 			Scanner lineScan = new Scanner(line);
 			int threads = lineScan.nextInt();
 			String arg = lineScan.next();
-			return TIME + " " + cmd + " " + PATH_TO_INPUT + arg + " " + threads;
+			return threads == 0 ? 
+				TIME + " " + cmd + " " + PATH_TO_INPUT + arg : 
+				TIME + " " + cmd + " " + PATH_TO_INPUT + arg + " " + threads;
 		}
 
 		private String getTestLine() {
@@ -86,7 +88,7 @@ public class Tester {
 		 * 8. t
 		 */
 		public static final Pattern timePattern = Pattern.compile(
-				"(\\d+)\\.(\\d{2})&(\\d+)\\.(\\d{2})&(\\d+)&.+_(\\d+)_(\\d+) (\\d+)");
+				"(\\d+)\\.(\\d{2})&(\\d+)\\.(\\d{2})&(\\d+)&.+_(\\d+)_(\\d+)\\s?(\\d*)");
 		private FileWriter writer;
 		private int fileNbr;
 		private String outfileName;
@@ -98,9 +100,12 @@ public class Tester {
 		}
 
 		public void writeLine(InputStream is) throws IOException {
-			String result = new BufferedReader(new InputStreamReader(is)).readLine();
+			String result = "";
+			do {
+				result = new BufferedReader(new InputStreamReader(is)).readLine();
+			} while (result.startsWith("  ***   "));
 			Matcher m = timePattern.matcher(result);
-//			System.out.println("Result is: " + result);
+			System.out.println("Result is: " + result);
 			if (m.find()) {
 				long umillis = Long.valueOf(m.group(1)) * 1000l + 
 					Long.valueOf(m.group(2)) * 10l;
@@ -109,7 +114,10 @@ public class Tester {
 				long rssmax = Integer.valueOf(m.group(5));
 				int n = Integer.valueOf(m.group(6));
 				int dE = Integer.valueOf(m.group(7));
-				int t = Integer.valueOf(m.group(8));
+				int t = 0;
+				if (!m.group(8).isEmpty()) {
+					t = Integer.valueOf(m.group(8));
+				}
 				writer.write(n + "\t" + dE + "\t" + t + "\t" + 
 						umillis + "\t" + rmillis + "\t" + rssmax + "\n");
 				writer.flush();
@@ -157,6 +165,12 @@ public class Tester {
 
 				// For nice output
 				stdoutput(pr.getInputStream());
+
+				try {
+					pr.waitFor();
+				} catch (InterruptedException e) {
+					System.err.println("Don't interrupt me!");
+				}
 
 				// Read test output and write to file
 				trw.writeLine(pr.getErrorStream());
