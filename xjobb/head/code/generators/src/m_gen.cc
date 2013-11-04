@@ -124,11 +124,11 @@ int main(int argc, char** argv) {
 		
 		ostringstream outname;
 		outname << "input/adjm/";
-	       	outname << "m_" << n << "_" << dm;
+	       	outname << "g_" << n << "_" << dm;
 
 		ofstream outfile(outname.str().c_str());
 		
-		outfile << n << "\n";
+		outfile << n << " " << mpz_get_ui(m) << "\n";
 		for (int i = 0; i < n; ++i) {
 			for (int j = 0; j < n; ++j) {
 //				cout << "i: " << i << ", j: " << j << endl;
