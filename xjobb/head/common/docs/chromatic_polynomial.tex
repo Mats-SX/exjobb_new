@@ -94,7 +94,7 @@ T_{dE}(n) = \frac{\lfloor(\frac{n}{2})^2\rfloor}{m_{max}} = 2\frac{\lfloor(\frac
   \right.
 $$
 
-In conclusion, any graph with $dE > T_{dE}(n)$ can optimize away at least one computation of step \ref{q} above. The following plot visualizes desnity thresholds for some graphs of such size we will discuss in this paper.
+In conclusion, any graph with $dE > T_{dE}(n)$ can optimize away at least one computation of step \ref{q} above. It also follows that as $n \rightarrow \infty$ we will have $T_{dE}(n) \rightarrow \frac{1}{2}$. The following plot shows how fast we converge for the graphs discussed in this paper.
 
 \begin{center}
 \begin{tikzpicture}
@@ -102,13 +102,15 @@ In conclusion, any graph with $dE > T_{dE}(n)$ can optimize away at least one co
 xlabel=$n$,
 ylabel=$T_{dE}(n)$]
 %\addplot[black, mark=*, samples=20, domain=4:23] {(2*floor((x/2)^2))/(x*(x-1))};
-\addplot[black, only marks, mark=*, samples=10, domain=4:22] {x/(2*(x-1))};
-\addplot[black, only marks, mark=*, samples=10, domain=5:23] {(x+1)/(2*x)};
+\addplot[black, only marks, mark=*, samples=14, domain=4:30] {x/(2*(x-1))};
+\addplot[black, only marks, mark=*, samples=13, domain=5:29] {(x+1)/(2*x)};
+\addplot[black, samples=10, domain=4:30] {1/2};
 \end{axis}
 \end{tikzpicture}
 \end{center}
 
-This result is quite interesting, because for larger graphs, we have a smaller $T_{dE}(n)$, which gives us a higher probability to be able to optimize, and it is also for larger graphs that we are most interested in optimizing techniques. For a graph with $n=23$ and $dE = 75$, we would be able to skip evaluating $q\leq7$, which would yield an expected decrease in time by about 10\%\footnotemark. %TODO update this number
+This result is quite interesting, because for larger graphs, we have a smaller $T_{dE}(n)$, which gives us a higher probability to be able to optimize, and it is also for larger graphs that we are most interested in optimizing techniques. For a graph with $n=23$ and $dE = 75$, we would be able to skip evaluating $q\leq7$, which would yield an expected decrease in time by about 15\%\footnotemark. %TODO update this number 
+%UPDATED 1/11 from two tests on pari-0.2 and pari-0.2.1 and graphs 17_80 and 19_85.
 
 \footnotetext{This number is based on experimental results presented below.}
 
@@ -134,12 +136,33 @@ For polynomial representation, I've implemented two libraries for number theoret
 \subsection{NTL 6.0.0}
 The first is NTL, Number Theoretic Library, written in C++ by Victor Shoup at New York University\cite{ntl}. It is advertised as one of the fastest implementations of polynomial arithmetic, which is all that I am interested in. Unfortunately, it does not provide any non-trivial way of exponentiating polynomials, and its multiplication algorithms are a bit lackluster after some careful studying. It is very easy to use, provides its own garbage collection and has a rich, high-level interface for library usage.
 
-The functions I use are primarily these: \code{ZZX.operator+=()}, \code{ZZX.operator*=()}. The binary is called \code{chr\_pol\_ntl}.
+The functions I use are primarily these: 
+
+\begin{itemize}
+ \item \code{ZZX.operator+=()}
+ \subitem Addition and assignment for polynomials. %TODO Documentation citation
+ \item \code{ZZX.operator*=()}
+ \subitem Multiplication and assignment for polynomials. %TODO Doc citation
+\end{itemize}
+
+Binaries are called \code{bhkk-ntl-x.y.z}.
 
 \subsection{PARI 2.5.5}
 Experiencing the relative lack of performance boost from the NTL implementation led me to find also the PARI project. It is written in C mainly by a group of French computer scientists at Université Bordeaux \cite{pari}, together with a calculator-like interface (\code{gp}) to be used by an end-user (comparable to Maple). The PARI library is provided at a much lower level, requires the user to garbage collect (since it is written in C, after all), has a much steeper learning curve and a very detailed but hard-to-grasp documentation. It is a bit unclear to me how exactly PARI implements polynomial exponentiation and multiplication, but from the impression I've got and, more importantly, its performance, it has to be non-trivial.
 
-The functions I use are primarily these: \code{ZX\_add()}, \code{ZX\_mul()}, \code{gpowgs()}. The binary is called \code{chr\_pol\_pari}.
+The functions I use are primarily these: 
+
+\begin{itemize}
+ \item \code{ZX\_add()}
+ \subitem Addition for polynomials. %TODO: doc citation
+ \item \code{ZX\_mul()}
+ \subitem Multiplication for polynomials. %TODO: citation from documentation
+ \item \code{gpowgs()}
+ \subitem General exponentiation for PARI types. Used for polynomials.
+\end{itemize}
+
+Binaries are called \code{bhkk-pari-x.y.z}.
+
 
 %TODO: is this part necessary?
 %The PARI library implements its own stack, which it needs to have allocated before any function calls can be made. Preferably, a large enough stack should be allocated at the start of the program, so that re-allocations will not be necessary. I am allocating 50MB of memory for the stack, which is more than enough for most instances. This has a side effect in the measurements of memory usage, meaning that the virtual memory peak is constant for all PARI executions.
@@ -200,12 +223,14 @@ The program has evolved through the development process as new optimizations hav
 
 Due to the linearity of the development process, each executable implements all optimizations included in the ones above them (where applicable).
 
-\begin{tabular}{c|c|c}
- Identifier & Optimizations & Polynomial library \\
- \code{ruber} &  & PARI \\
- \code{prasinus} & & PARI \\
- \code{caeruleus} &  & PARI \\
- \code{flavus} & parallelization & PARI \\
+\begin{tabular}{c|c|c|c}
+ Identifier & Attributes & Polynomial library & Version number \\ \hline
+ \code{aka} & Base & PARI & 0.1 \\
+ \code{senko} & Base & NTL & 0.1 \\
+ \code{midori} & Parallelization & PARI & 0.2 \\
+ \code{kimidori} & Parallelization & NTL & 0.2 \\
+ \code{buryu} & Min-max clique number & PARI & 0.3-beta \\
+ \code{mizudori} & Min-max clique number & NTL & 0.3-beta \\
 \end{tabular}
 
 % prasinus, -a, - um. green
@@ -261,7 +286,8 @@ xlabel=$n$,
 ylabel=CPU time (ms)]
 \addplot table[x=n,y=ut] {../output/javatests/pari_all1};
 \addplot[red,mark=triangle*] table[x=n,y=ut] {../output/javatests/pari_all2};
-\legend{Dense, Sparse}
+\addplot[black,mark=diamond*] table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_pll_time1};
+\legend{Dense, Sparse, 2nd method}
 %\addplot table[x=n,y=tt] {../output/parsed_results/chr_pol_ntl_ntl_all_time1};
 \end{axis}
 \end{tikzpicture}
@@ -309,7 +335,7 @@ Here we have memory usage as a function of $n$. Expected function from theory is
 \begin{tikzpicture}
 \begin{axis}[legend pos=north west,baseline,trim axis left,small,
 xlabel=$n$,
-ylabel=Peak resident set (kB)]
+ylabel=Peak resident set size (kB)]
 \addplot table[x=n,y=rss] {../output/javatests/pari_all1};
 \addplot[red,mark=triangle*] table[x=n,y=rss] {../output/javatests/pari_all2};
 \legend{Dense, Sparse}
@@ -331,20 +357,6 @@ ylabel=Peak resident set (kB)]
 \end{tabular}
 \end{center}
 
-Here we compare CPU time to real time consumption, and get an indication of how powerful our parallelization is to performance. For the extreme point at $n=23$, parallelization allows us to execute in less than 12\% of the time we would have needed on one processor.
-
-\begin{center}
-\begin{tikzpicture}
-\begin{axis}[legend pos=north west,baseline,trim axis left,small,title=Dense graphs,
-xlabel=$n$,
-ylabel=Time (ms)]
-\addplot table[x=n,y=ut] {../output/javatests/pari_all1};
-\addplot[red,mark=triangle*] table[x=n,y=rt] {../output/javatests/pari_all1};
-\legend{CPU time, Real time}
-%\addplot table[x=n,y=tt] {../output/parsed_results/chr_pol_ntl_ntl_all_time1};
-\end{axis}
-\end{tikzpicture}
-\end{center}
 
 \subsubsection{Parallelization}
 Here we investigate how our parallelization scheme acts as we increase the number of threads. We plot the function of user and real time as we increase the number of threads. Recall that our maximum \emph{actual} parallelization width is 12.
@@ -379,6 +391,27 @@ ylabel=Real time (ms), yticklabel pos=right, ylabel style={align=right}]
 There seem to be no notable difference in how sparse and dense graphs parallelize. As expected, the plots peak at 12 threads. What is not expected is that the top performance was measured for 45 threads. It is not easy to realize that some threads will terminate much sooner than others (because they happened to get a range of subsets which were more frequently independent, see section \ref{sparsedense}), and so using > 12 threads could be useful. It is unclear why 45 is the best (measured) value, however.
 
 Another interesting note to take is that for 100 threads, the gain in processing dense versus sparse graphs has disappeared. This can partly be explained by the fact that the OS is now spending lots of time context switching the 100 threads over the 12 CPUs, but from a more algorithmic point of view, we can make another argument. As we let each thread iterate over fewer and fewer subsets from step \ref{step1}, our real time consumption is more and more dominated by the one thread that takes the longest time to execute. That is, the thread that was allocated with the ''worst'' range of subsets. ''Bad'' ranges are more common when the graph is sparse, but as we divide the subsets into smaller ranges, the ''worst'' range decreases in ''badness'' faster for the sparse graphs than for the dense. It would seem that they have more or less converged for the graph above at 100 threads.
+
+\bigskip
+
+Here we compare CPU time to real time consumption and also to the CPU time used by the single threaded version, and get an indication of how powerful our parallelization is to performance. %TODO: How does this discussion relate to the one in previous paragraphs? check this up and make a complete and composite discussion.
+
+\begin{center}
+\begin{tabular}{c}
+\begin{tikzpicture}
+\begin{axis}[legend pos=north west,baseline,trim axis left,title=Dense graphs,
+xlabel=$n$,
+ylabel=Time (ms)]
+\addplot table[x=n,y=ut] {../output/javatests/pari_all1};
+\addplot[red,mark=triangle*] table[x=n,y=rt] {../output/javatests/pari_all1};
+\addplot[black,mark=diamond*] table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time1};
+%\addplot[magenta] table[x=n,y expr=\thisrow{ut}/12] {../output/javatests/pari_all1};
+\legend{CPU time, Real time, Single thread}
+\end{axis}
+\end{tikzpicture}
+\\
+\end{tabular}
+\end{center}
 
 \begin{center}
 \begin{tabular}{rl}
@@ -432,55 +465,55 @@ ylabel=Weighted Resident Set Size (kB)]
 \end{tikzpicture}
 \end{center}
 
-\subsubsection{''Dense'' graphs}
-\begin{center}
-\begin{tikzpicture}
-\begin{axis}[
-xlabel=$n$,
-ylabel=Time (ms)]
-\addplot table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time1};
-%\addplot table[x=n,y=st] {../output/parsed_results/chr_pol_pari_pari_all_time1};
-%\addplot table[x=n,y=tt] {../output/parsed_results/chr_pol_pari_chr_pol1_time1};
-\end{axis}
-\end{tikzpicture}
-\end{center}
-
-Time usage shows us what we expect; a strong, sudden increase as $n$ grows. At $n=15$, execution exceeds 1 second. At $n=21$ we are over 200 seconds, and at $n=23$ execution takes over 1000 seconds.
-
-Is this increase exponential? For reference, let us assume that each accounted operation takes 0.1 milliseconds. Since our time complexity in terms of operations increase as $O(2^n)$, we can plot this as $f_t(x) = \frac{1}{10}2^x$.
-
-\begin{center}
-\begin{tikzpicture}
-\begin{axis}[legend pos=north west,
-xlabel=$n$,
-ylabel=Time (ms)]
-\addplot[blue, mark=*] table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time1};
-\addlegendentry{measured time}
-\addplot[red,mark=triangle*,domain=4:23] {(1/10)*2^x};
-\addlegendentry{expected time ($f_t$)}
-%\addplot table[x=n,y=st] {../output/parsed_results/chr_pol_pari_pari_all_time1};
-%\addplot table[x=n,y=tt] {../output/parsed_results/chr_pol_pari_chr_pol1_time1};
-\end{axis}
-\end{tikzpicture}
-\end{center}
-
-From this comparison, we may conclude that time consumption of the program is no better than $O(2^n)$, given above assumptions.
-
-\begin{center}
-\begin{tikzpicture}
-\begin{axis}[legend pos=north west,
-xlabel=$n$,
-ylabel=Resident set size (kB)]
-\addplot table[x=n,y=rss] {../output/parsed_results/chr_pol_pari_pari_all_mem1};
-\addplot[red, mark=triangle*,domain=4:23] {(4)*(1.2916)^x + 2600};
-\legend{measured memory, theoretical space ($f_m$)}
-%\addplot table[x=x,y=2exp] {../misc/functables/129exp};
-%\addplot table[x=n,y=vm] {../output/parsed_results/chr_pol_pari_pari_all_mem1};
-\end{axis}
-\end{tikzpicture}
-\end{center}
-
-Assuming one unit of ''space'' (see section \ref{whatisspace}) takes about 4KB of memory, we can estimate the expected memory usage as $f_m(x) = 4\cdot1.2916^n + c$, where $c$ is our constant overhead, where we find $c = 2600$ is coherent with experimental results. $f_m$ grows as $O(1.2916^n)$, which is the specified space consumption from \cite{cov_pack}.
+% \subsubsection{''Dense'' graphs}
+% \begin{center}
+% \begin{tikzpicture}
+% \begin{axis}[
+% xlabel=$n$,
+% ylabel=Time (ms)]
+% \addplot table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time1};
+% %\addplot table[x=n,y=st] {../output/parsed_results/chr_pol_pari_pari_all_time1};
+% %\addplot table[x=n,y=tt] {../output/parsed_results/chr_pol_pari_chr_pol1_time1};
+% \end{axis}
+% \end{tikzpicture}
+% \end{center}
+% 
+% Time usage shows us what we expect; a strong, sudden increase as $n$ grows. At $n=15$, execution exceeds 1 second. At $n=21$ we are over 200 seconds, and at $n=23$ execution takes over 1000 seconds.
+% 
+% Is this increase exponential? For reference, let us assume that each accounted operation takes 0.1 milliseconds. Since our time complexity in terms of operations increase as $O(2^n)$, we can plot this as $f_t(x) = \frac{1}{10}2^x$.
+% 
+% \begin{center}
+% \begin{tikzpicture}
+% \begin{axis}[legend pos=north west,
+% xlabel=$n$,
+% ylabel=Time (ms)]
+% \addplot[blue, mark=*] table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time1};
+% \addlegendentry{measured time}
+% \addplot[red,mark=triangle*,domain=4:23] {(1/10)*2^x};
+% \addlegendentry{expected time ($f_t$)}
+% %\addplot table[x=n,y=st] {../output/parsed_results/chr_pol_pari_pari_all_time1};
+% %\addplot table[x=n,y=tt] {../output/parsed_results/chr_pol_pari_chr_pol1_time1};
+% \end{axis}
+% \end{tikzpicture}
+% \end{center}
+% 
+% From this comparison, we may conclude that time consumption of the program is no better than $O(2^n)$, given above assumptions.
+% 
+% \begin{center}
+% \begin{tikzpicture}
+% \begin{axis}[legend pos=north west,
+% xlabel=$n$,
+% ylabel=Resident set size (kB)]
+% \addplot table[x=n,y=rss] {../output/parsed_results/chr_pol_pari_pari_all_mem1};
+% \addplot[red, mark=triangle*,domain=4:23] {(4)*(1.2916)^x + 2600};
+% \legend{measured memory, theoretical space ($f_m$)}
+% %\addplot table[x=x,y=2exp] {../misc/functables/129exp};
+% %\addplot table[x=n,y=vm] {../output/parsed_results/chr_pol_pari_pari_all_mem1};
+% \end{axis}
+% \end{tikzpicture}
+% \end{center}
+% 
+% Assuming one unit of ''space'' (see section \ref{whatisspace}) takes about 4KB of memory, we can estimate the expected memory usage as $f_m(x) = 4\cdot1.2916^n + c$, where $c$ is our constant overhead, where we find $c = 2600$ is coherent with experimental results. $f_m$ grows as $O(1.2916^n)$, which is the specified space consumption from \cite{cov_pack}.
 
 % \subsubsection{''Sparse'' graphs}
 % 
@@ -509,41 +542,117 @@ Assuming one unit of ''space'' (see section \ref{whatisspace}) takes about 4KB o
 % \end{center}
 % More or less constant resident set size. Some inaccuracy in the measuring process can be suspected, but the ''jump'' is not as large as it seems.
 
-\subsubsection{Comparing ''sparse'' and ''dense''}
-As we discussed in section \ref{sparsedense}, the algorithm performs better on dense graphs. But how much better?
-
-\begin{center}
-\begin{tikzpicture}
-\begin{axis}[legend pos=north west,
-xlabel=$n$,
-ylabel=Time (ms)]
-\addplot[red, mark=o] table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time1};
-\addplot[blue,mark=o] table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time2};
-\addplot[black,domain=4:23] {(1/10)*2^x};
-\legend{dense, sparse, $f_t$}
-\end{axis}
-\end{tikzpicture}
-\end{center}
-
-We have a clear difference. At the largest measured $n = 23$, a graph with almost twice as many edges does the job in about half the time.
-
-\begin{center}
-\begin{tikzpicture}
-\begin{axis}[legend pos=north west,
-xlabel=$n$,
-ylabel=Resident set size (kB)]
-\addplot[red, mark=o] table[x=n,y=rss] {../output/parsed_results/chr_pol_pari_pari_all_mem1};
-\addplot[blue, mark=o] table[x=n,y=rss] {../output/parsed_results/chr_pol_pari_pari_all_mem2};
-\addplot[black,domain=4:23] {(4)*(1.2916)^x + 2600};
-\legend{dense, sparse, $f_m$}
-\end{axis}
-\end{tikzpicture}
-\end{center}
-
-And of course the sparse graphs use more space as well, implicated by the same conclusions. 
+% \subsubsection{Comparing ''sparse'' and ''dense''}
+% As we discussed in section \ref{sparsedense}, the algorithm performs better on dense graphs. But how much better?
+% 
+% \begin{center}
+% \begin{tikzpicture}
+% \begin{axis}[legend pos=north west,
+% xlabel=$n$,
+% ylabel=Time (ms)]
+% \addplot[red, mark=o] table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time1};
+% \addplot[blue,mark=o] table[x=n,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time2};
+% \addplot[black,domain=4:23] {(1/10)*2^x};
+% \legend{dense, sparse, $f_t$}
+% \end{axis}
+% \end{tikzpicture}
+% \end{center}
+% 
+% We have a clear difference. At the largest measured $n = 23$, a graph with almost twice as many edges does the job in about half the time.
+% 
+% \begin{center}
+% \begin{tikzpicture}
+% \begin{axis}[legend pos=north west,
+% xlabel=$n$,
+% ylabel=Resident set size (kB)]
+% \addplot[red, mark=o] table[x=n,y=rss] {../output/parsed_results/chr_pol_pari_pari_all_mem1};
+% \addplot[blue, mark=o] table[x=n,y=rss] {../output/parsed_results/chr_pol_pari_pari_all_mem2};
+% \addplot[black,domain=4:23] {(4)*(1.2916)^x + 2600};
+% \legend{dense, sparse, $f_m$}
+% \end{axis}
+% \end{tikzpicture}
+% \end{center}
+% 
+% And of course the sparse graphs use more space as well, implicated by the same conclusions. 
 
 \subsubsection{Increasing density}
 So, we've seen that the density of the graph is important to the performance of the algorithm. But how much falloff can we expect? And are there any certain points of extra interest?
+
+\begin{center}
+\begin{tabular}{rl}
+\begin{tikzpicture}
+\begin{axis}[legend pos=north east,trim axis left,small,
+xlabel=$dE$,
+ylabel=Time (ms)]
+%\addplot[blue, mark=*] table[x=dE,y=ut] {../output/javatests/pari_all6};
+\addplot[blue, mark=*] table[x=dE,y=rt] {../output/javatests/pari_all6};
+\legend{Real time}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[legend pos=north east,trim axis right,small, yticklabel pos=right, ylabel style={align=right},
+xlabel=$dE$,
+ylabel=Time (ms)]
+\addplot[blue, mark=*] table[x=dE,y=rt] {../output/javatests/pari_all6};
+\addplot[red, mark=triangle*] table[x=dE,y=ut] {../output/javatests/pari_all6};
+\legend{Real time, CPU time}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[legend pos=north east,trim axis left,small,
+xlabel=$dE$,
+ylabel=CPU time (ms)]
+\addplot[blue, mark=*] table[x=df,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time3};
+\addplot[red, mark=triangle*] table[x=dE,y=ut] {../output/javatests/pari_all6};
+\legend{Single thread, Parallelized}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[legend pos=north east,trim axis right,small, yticklabel pos=right, ylabel style={align=right},
+xlabel=$dE$,
+ylabel=Time (ms)]
+\addplot[blue, mark=*] table[x=df,y=ut] {../output/parsed_results/chr_pol_pari_pari_all_time3};
+\addplot[red, mark=triangle*] table[x=dE,y=rt] {../output/javatests/pari_all6};
+\legend{Single thread, Real time}
+\end{axis}
+\end{tikzpicture}
+\\
+\end{tabular}
+\end{center}
+
+The time falloff follows the same pattern in user time and in real time. The pattern is also the same if we compare to the single thread version.
+
+
+Memory as a function of density:
+
+\begin{center}
+\begin{tabular}{rl}
+\begin{tikzpicture}
+\begin{axis}[legend pos=north east,trim axis left,small,
+xlabel=$dE$,
+ylabel=Peak resident set size (kB)]
+\addplot[blue, mark=*] table[x=dE,y=rss] {../output/javatests/pari_all6};
+%\legend{Real time}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[legend pos=north east,trim axis right,small, yticklabel pos=right, ylabel style={align=right},
+xlabel=$dE$,
+ylabel=Peak resident set size (kB)]
+\addplot[blue, mark=*] table[x=dE,y=rss] {../output/javatests/pari_all6};
+\addplot[red, mark=triangle*] table[x=df,y=rss] {../output/parsed_results/chr_pol_pari_pari_all_mem3};
+\legend{Parallelized, Single thread}
+\end{axis}
+\end{tikzpicture}
+\\
+\end{tabular}
+\end{center}
+
+Single threaded version:
 
 \begin{center}
 \begin{tikzpicture}
@@ -573,7 +682,7 @@ ylabel=Resident set size (kB)]
 As we can see, both time and space consumption falls off the most as we add the first edges. At 20\% density we use 30\% less space and over 40\% less time as compared to 5\% density. Our best performance is on complete graphs, even though we do not implement any ''special treatment'' for graphs of certain density.
 
 \subsubsection{''Large'' instance}
-
+Single thread: (gets beat) on m\_25\_40 (I think!) %TODO 40 or 75?
 \begin{center}
  \begin{tabular}{|c|c|c|} \hline
   Program & Time (s) & Peak resident set size (MB) \\ \hline
@@ -582,6 +691,19 @@ As we can see, both time and space consumption falls off the most as we add the 
  \end{tabular}
 
 \end{center}
+
+12 threads: (pwns) on m\_30\_75
+
+\begin{center}
+ \begin{tabular}{|c|c|c|c|} \hline
+  Program & CU time (s) & Real time (s) & Peak resident set size (MB) \\ \hline
+  \code{chr\_pol\_pari} & 559,841 & 49,651 & 2,584 \\ \hline
+  \code{tutte} & > 94,000 & > 95,000 & 40,135 \\ \hline
+ \end{tabular}
+
+\end{center}
+
+\code{tutte} did not finish and was stopped after 95,000 seconds (over 26 hours).
 
 
 % PARI:
