@@ -103,9 +103,10 @@ public class Tester {
 			String result = "";
 			do {
 				result = new BufferedReader(new InputStreamReader(is)).readLine();
+				
+				System.out.println("Result is: " + result);
 			} while (result.startsWith("  ***   "));
 			Matcher m = timePattern.matcher(result);
-			System.out.println("Result is: " + result);
 			if (m.find()) {
 				long umillis = Long.valueOf(m.group(1)) * 1000l + 
 					Long.valueOf(m.group(2)) * 10l;
