@@ -35,3 +35,6 @@ xjobb/head/common/input/autotests/
 # Files in 'output' are from now on determined 'temporary'
 # Consequently, they shouldn't be version controlled.
 xjobb/head/common/output/
+
+# I feel no need to keep all my graphs in the repo
+xjobb/head/common/input/adjm/
