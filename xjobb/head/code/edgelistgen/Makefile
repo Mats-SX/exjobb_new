@@ -24,7 +24,7 @@ CXXFLAGS 	+= -Wall -Wextra -pedantic-errors -Wold-style-cast
 CXXFLAGS	+= -m64 -mtune=corei7-avx -march=corei7-avx
 
 # Programs
-PRGS		= EdgeListGen
+PRGS		= EdgeListGen DimacsToMatrix
 OBJS		= *.o
 
 # default targets
@@ -36,6 +36,8 @@ install:
 	mv $(PRGS) $(BIN) 
 
 # Linking
-EdgeListGen:	$(VPATH)$(PRGS).java
-	javac -d $(BIN) $(VPATH)$(PRGS).java
+EdgeListGen:	$(VPATH)EdgeListGen.java
+	javac -d $(BIN) $(VPATH)EdgeListGen.java
 
+DimacsToMatrix:	$(VPATH)DimacsToMatrix.java
+	javac -d $(BIN) $(VPATH)DimacsToMatrix.java
