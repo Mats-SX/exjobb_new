@@ -12,22 +12,26 @@ import java.util.regex.Matcher;
 
 public class Tester {
 	public static final String TIME = "/usr/bin/time --format=\"%U&%e&%M&%C\"";
-	public static final String PATH_TO_INPUT = "input/adjm/";
+	public static final String PATH_TO_INPUT = "input/adjm/hundred/";
 	public static final String PATH_TO_OUTPUT = "output/javatests/";
 
 	private static class ProtocolParser {
 		private Scanner scanner;
 		private String cmd;
+		private int nbrTests;
+		private int curTest;
+		private String lastArg;
+		private int threads;
 		private boolean newtest = false;
 
 		public ProtocolParser(String filename) {
-//			System.out.println(TIME);
+			//			System.out.println(TIME);
 			try {
 				scanner = new Scanner(new File(filename));
 			} catch (FileNotFoundException fnfe) {
 				System.err.println("File not found!");
 			}
-			findExec();
+			init();
 		}
 
 		public boolean isNewTest() {
@@ -39,17 +43,28 @@ public class Tester {
 			}
 		}
 
+		public int iters() {
+			return nbrTests;
+		}
+
 		public String getTestCmdLine() {
-			String line = getTestLine();
-			if (line == null)
-				return null;
-//			System.out.println(line);
-			Scanner lineScan = new Scanner(line);
-			int threads = lineScan.nextInt();
-			String arg = lineScan.next();
-			return threads == 0 ? 
-				TIME + " " + cmd + " " + PATH_TO_INPUT + arg : 
-				TIME + " " + cmd + " " + PATH_TO_INPUT + arg + " " + threads;
+			String retCmd = "";
+			if (curTest < nbrTests) {
+				retCmd = lastArg + "-" + curTest;
+				++curTest;
+			} else {
+				String line = getTestLine();
+				if (line == null)
+					return null;
+				System.out.println(line);
+				Scanner lineScan = new Scanner(line);
+				threads = lineScan.nextInt();
+				String arg = lineScan.next();
+				lastArg = TIME + " " + cmd + " " + PATH_TO_INPUT + arg;
+				curTest = 0;
+				return getTestCmdLine();
+			}
+			return threads == 0 ? retCmd : retCmd + " " + threads;
 		}
 
 		private String getTestLine() {
@@ -65,8 +80,11 @@ public class Tester {
 			return line;
 		}
 
-		private void findExec() {
-			cmd = getTestLine();
+		private void init() {
+			String line = getTestLine();
+			cmd = line.split(" ")[0];
+			nbrTests = Integer.valueOf(line.split(" ")[1]);
+			curTest = nbrTests;
 		}
 
 	}
@@ -88,47 +106,72 @@ public class Tester {
 		 * 8. t
 		 */
 		public static final Pattern timePattern = Pattern.compile(
-				"(\\d+)\\.(\\d{2})&(\\d+)\\.(\\d{2})&(\\d+)&.+_(\\d+)_(\\d+)\\s?(\\d*)");
+				"(\\d+)\\.(\\d{2})&(\\d+)\\.(\\d{2})&(\\d+)&.+_(\\d+)_(\\d+)-\\d{0,3}\\s?(\\d*)");
 		private FileWriter writer;
 		private int fileNbr;
-		private String outfileName;
+		private final String outfileName;
+		private final int datapoints;
+		private int curPoints;
+		private long umillis;
+		private long rmillis;
+		private long rssmax;
+		private int n;
+		private int dE;
+		private int t;
 
-		public TestResultWriter(String testfileName) throws IOException {
+		public TestResultWriter(String testfileName, int d) throws IOException {
 			outfileName = PATH_TO_OUTPUT + 
 				testfileName.substring(testfileName.lastIndexOf("/") + 1);
 			fileNbr = 0;
+			curPoints = 0;
+			datapoints = d;
 		}
 
-		public void writeLine(InputStream is) throws IOException {
+		public void parseLine(InputStream is) throws IOException {
 			String result = "";
 			do {
 				result = new BufferedReader(new InputStreamReader(is)).readLine();
-				
+
 				System.out.println("Result is: " + result);
 			} while (result.startsWith("  ***   "));
 			Matcher m = timePattern.matcher(result);
 			if (m.find()) {
-				long umillis = Long.valueOf(m.group(1)) * 1000l + 
+				++curPoints;
+				long _umillis = Long.valueOf(m.group(1)) * 1000l + 
 					Long.valueOf(m.group(2)) * 10l;
-				long rmillis = Integer.valueOf(m.group(3)) * 1000l +
+				long _rmillis = Integer.valueOf(m.group(3)) * 1000l +
 					Long.valueOf(m.group(4)) * 10l;
-				long rssmax = Integer.valueOf(m.group(5));
-				int n = Integer.valueOf(m.group(6));
-				int dE = Integer.valueOf(m.group(7));
-				int t = 0;
+				long _rssmax = Integer.valueOf(m.group(5));
+				/* Take average */
+				umillis += _umillis / datapoints;
+				rmillis += _rmillis / datapoints;
+				rssmax += _rssmax / datapoints;
+				n = Integer.valueOf(m.group(6));
+				dE = Integer.valueOf(m.group(7));
+				t = 0;
 				if (!m.group(8).isEmpty()) {
 					t = Integer.valueOf(m.group(8));
 				}
-				writer.write(n + "\t" + dE + "\t" + t + "\t" + 
-						umillis + "\t" + rmillis + "\t" + rssmax + "\n");
-				writer.flush();
 			} else {
 				System.err.println("No match found! Error in pattern?");
+			}
+			if (curPoints == datapoints) {
+				setNewRow();
+				curPoints = 0;
 			}
 		}
 
 		private void setTitle() throws IOException {
 			writer.write("n\tdE\tt\tut\trt\trss\n");
+		}
+
+		private void setNewRow() throws IOException {
+			writer.write(n + "\t" + dE + "\t" + t + "\t" + 
+					umillis + "\t" + rmillis + "\t" + rssmax + "\n");
+			writer.flush();
+			umillis = 0;
+			rmillis = 0;
+			rssmax = 0;
 		}
 
 		public void setNewFile() throws IOException {
@@ -153,15 +196,17 @@ public class Tester {
 	public static void main(String[] args) {
 		ProtocolParser pp = new ProtocolParser(args[0]);
 		Runtime rt = Runtime.getRuntime();
-		
+
 		try {
-			TestResultWriter trw = new TestResultWriter(args[0]);
+			TestResultWriter trw = new TestResultWriter(args[0], pp.iters());
 
 			String cmd = null;
 			while ((cmd = pp.getTestCmdLine()) != null) {
 				if (pp.isNewTest()) {
 					trw.setNewFile();
 				}
+
+//				System.out.println("Running cmd: " + cmd);
 				Process pr = rt.exec(cmd);
 
 				// For nice output
@@ -174,10 +219,11 @@ public class Tester {
 				}
 
 				// Read test output and write to file
-				trw.writeLine(pr.getErrorStream());
+				trw.parseLine(pr.getErrorStream());
 
 			}
 		} catch (IOException ioe) {
+			ioe.printStackTrace();
 			System.err.println("IOException!");
 		}
 	}

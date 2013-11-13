@@ -110,6 +110,8 @@ std::string* utils::count_colourings_small_space(
 
 	u_int_t w_min = min_max_clique(n, m);	// find least possible clique nbr
 	
+//	std::cout << "w_min found to be " << w_min << std::endl;
+
 	if (q < w_min) {
 		return &ZERO_STR;
 	}
