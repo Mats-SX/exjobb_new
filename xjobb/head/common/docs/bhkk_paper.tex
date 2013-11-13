@@ -26,7 +26,7 @@
 \maketitle
 
 \begin{abstract}
- The \emph{Chromatic Polynomial} $\chi_G$ of a graph $G$ on $n$ vertices is a univariate polynomial of degree $n$, passing through the points $(k, P_G(k))$ where $P_G(k)$ is the number of $k$-colourings of $G$. In this paper, we present an implementation of the BHKK algorithm which computes $\chi_G$ in time $O^*(2^n)$ and space $O^*(1.2916^n)$. We compare the performance of two different core libraries to eachother and show our performance against another implementation from 2010.
+ The \emph{Chromatic Polynomial} $\chi_G$ of a graph $G$ on $n$ vertices is a univariate polynomial of degree $n$, passing through the points $(k, P_G(k))$ where $P_G(k)$ is the number of $k$-colourings of $G$. In this paper, we present an implementation of the BHKK algorithm which computes $\chi_G$ in time $O^*(2^n)$ and space $O^*(1.2916^n)$. We compare the performance of two different core libraries to eachother and show our performance against the implementation of Haggard et al \cite{haggard} from 2010. We also reproduce the recent results of Beck et al \cite{signed_petersen}, providing the chromatic polynomials of the signed Petersen graphs.
 \end{abstract}
 
 \newpage
@@ -40,7 +40,12 @@ Theory, results, earlier algorithms, history
 Intention of this report
 
 
-%The \emph{Chromatic Polynomial} $\chi_G$ of a graph $G$ is a graph invariant describing the colourability of $G$. In particular, the \emph{chromatic number} is the smallest $k$ for which $\chi_G(k) > 0$. It is of high interest in the field of algebraic graph theory, 
+The \emph{Chromatic Polynomial} $\chi_G(t)$ of a graph $G$ is a graph invariant describing the colourability of $G$. In particular, the \emph{chromatic number} is the smallest $k$ for which $\chi_G(k) > 0$. It is of high interest in the field of algebraic graph theory, as one of the main artifacts characterizing a graph.
+
+The chromatic polynomial was first in 1912 by Birkhoff, who defined it for planar graphs with the intent on proving the Four Colour Theorem. Whitney extended its definition to general graphs in 1932
+
+
+Beck et al \cite{signed_petersen} recently presented the chromatic polynomials of the \emph{signed Petersen graphs}. They 
 
 \section{The algorithm}
 The algorithm measured in this performance test is described in Björklund et al \cite{cov_pack}, and henceforth referred to as the \textbf{BHKK} algorithm. It is based on the linear-space Fast Zeta Transform described in the same paper, and is proven to perform in time $O(2^n)$ and space $O(1.2916^n)$. 
@@ -84,12 +89,12 @@ First, we can consider optimizing on the basis of the value of $q$.
 \begin{itemize}
 \item For $q = 0$, any graph with $n > 0$ can be coloured in 0 ways. For $n = 0$, 0-colouring is undefined. This is a purely semantic question anyway, and empty graphs are not a relevant topic for this paper. This takes $O(1)$ time.
 \item For $q = 1$, there are 0 colourings if and only if $|E| > 0$, otherwise there is exactly 1 colouring. This takes $O(n^2)$ time to check, but in practice it is even faster, as we will encounter an edge with high probability before we've scanned the whole graph.
-\item For $q = 2$, it is well-known that the graph can be coloured (or found to be non-colourable) in polynomial time using standard techniques (such as breadth-first search). This has not been implemented in my programs.
+\item For $q = 2$, it is well-known that the graph can be coloured (or found to be non-colourable) in polynomial time using standard techniques (such as breadth-first search).
 \end{itemize}
 
 These optimizations will reduce the iterations of the loop at step \ref{q} by three.
 
-\paragraph{Exploiting $w(G)$}
+\paragraph{$w_{min}(G)$}
 A more sophisticated type of optimization involves exploiting the clique number $\omega(G)$, which is a lower bound of the chromatic number $\chi(G)$. Knowing that $\omega(G) \geq a$ for some constant $a$ would allow us to immediately skip all steps~\ref{q} where $q < a$. If $a = n$, we have the complete graph $K_n$, for which $\chi_G$ is known.
 
 Here we define the \emph{density} of a graph $G$ as $dE = m/m_{max} = \frac{2m}{n(n-1)}$. This immediately tells us the \emph{smallest possible} $\omega(G)$. Let us call it $\omega_{min}(G)$. In fact, the following holds:
@@ -138,7 +143,7 @@ This result is quite interesting, because for larger graphs, we have a smaller $
 
 We may also parallelize the steps \ref{q} on $O(n)$ parallel CPUs. This would not reduce the exponential factor of the time complexity, but it does reduce the polynomial factor and it is likely to give significant results in practice. I do not investigate this optimization technique, as my resources are already exhausted by parallelizing step \ref{step1}.
 
-\paragraph{Caching} Since in fact all steps of the inner loop of BHKK are independent from $q$, except the final step~\ref{rstep}, we are actually re-computing the same values for the array $h$ as we increase $q$. If we would cache these values after the first call of step~\ref{step1}, we would be performing only step~\ref{rstep} for all the rest of the computations, plus a look-up in our cache table. This would require a cache of size $2^{n_1} 2^{n_2} = 2^n$. This has not been further investigated.
+\paragraph{Caching} Since in fact all steps of the inner loop of BHKK are independent from $q$, except the final step~\ref{rstep}, we are actually re-computing the same values for the array $h$ as we increase $q$. If we would cache these values after the first call of step~\ref{step1}, we would be performing only step~\ref{rstep} for all the rest of the computations, plus a look-up in our cache table. This would require a cache of size $2^{n_1} 2^{n_2} = 2^n$.
 
 
 
@@ -219,41 +224,9 @@ NTL implements Karatsuba, Schönhage-Strassen and another FFT-based technique fo
 I have not found any documentation specifying which algorithms are implemented in the PARI library for polynomial multiplication. From analyzing the source code, it seems as if PARI ''converts'' the polynomial to an integer and submits it to its integer multiplication function (which would be one of GMPs).
 
 \section{Experimental results}
-My tests are performed on randomized graphs, generated for some values of $n$ and $dE$. These are generated by the \code{m\_gen} tool (written by the author).
+This section presents selected results in three parts. First, we show the metrics for the best implementation currently available, and discuss how it relates to the theory described above. Second, we compare it to some of the other implementations, to visualize the impact of each development choice. Most importantly, we make a comparison between which library for polynomial arithmetic was used. Thirdly, we compare our results to the Haggard-Pearce-Royle implementation \cite{haggard} and reproduce the results of Beck et al\cite{signed_petersen}. We end by providing the chromatic polynomial for a famous graph.
 
-%Here follows the performance graphs for all tests. Some interpretational text is also provided. The blue circles show user time in the time graphs and virtual memory in the memory graphs. The red squares show system time in the time graphs and resident set size in the memory graphs.
-
-The following instances have been executed:
-
-\begin{itemize}
- \item Increasing $n$ in interval $[4, 23]$.
- \subitem ''Dense'' graphs, $dE = 75$.
- \subitem ''Sparse'' graphs, $dE = 40$.
- \item Increasing density, $n = 19$, $dE \in [5, 100]$.
- \item ''Large'' instances, $n = 25$ and $n = 30$, $dE = 75$.
- \subitem $n = 30$ is only performed on the fastest versions.
- %\item Evaluation step, $q = 2, 3, \ldots, 19$, $n = 19$, $dE = 40$.
-\end{itemize}
-
-% The program has evolved through the development process as new optimizations have been implemented. In order to measure the effects of each optimization simulations have been run on a number of different versions of the programs. In an effort to provide completeness while at the same time not flood this paper with graphs, I've tried to structure up this section by specifying some identifiers for the executables that have been run in simulations.
-% 
-% Due to the linearity of the development process, each executable implements all optimizations included in the ones above them (where applicable).
-% 
-% \begin{center}
-% \begin{tabular}{c|c|c|c}
-%  Identifier & Attributes & Polynomial library & Version number \\ \hline
-%  \code{aka} & Base & PARI & 0.1 \\
-%  \code{senko} & Base & NTL & 0.1 \\
-%  \code{midori} & Parallelization & PARI & 0.2 \\
-%  \code{kimidori} & Parallelization & NTL & 0.2 \\
-%  \code{buryu} & Min-max clique number & PARI & 0.3-beta \\
-%  \code{mizudori} & Min-max clique number & NTL & 0.3-beta \\
-% \end{tabular}
-% \end{center}
-% 
-% Should I use these names?
-
-% http://www.omniglot.com/language/colours/japanese.htm
+For the first two parts, the tests are performed on randomized graphs, generated for some values of $n$ and $dE$ using a tool developed by the author. The process is basically to fill an array $A$ of size $m_{max} = \frac{n(n-1)}{2}$ with $m$ ones and rest zeroes, shuffle $A$ using Fisher-Yates shuffle and then add the edge $v_iv{i+1}$ to the graph if $A[i] = 1$.
 
 \subsection{Measurements}
 All tests are performed on the same machine, with the following specifications.
@@ -267,15 +240,198 @@ Compilator & GCC 4.7.2 (g++) \\
 \end{tabular}
 \end{center}
 
-For all time and memory measurements, the GNU time 1.7 program is used \cite{time}. The user time, elapsed time (real time)\footnotemark and peak resident set size are the data points recovered as measurements.
+For all time and memory measurements, the GNU time 1.7 program is used \cite{time}. The user time, elapsed time (real time)\footnotemark and peak resident set size are the data points recovered as measurements. These measurements are taken by running the specified program on 100 graphs of equal size and the average values are the ones presented.
 
-\footnotetext{Do note that for single-threaded applications, user time and real time are (more or less) the same. No graphs are therefore provided for the real time measurements. The ''less'' refers to the fact that there are some units of time scheduled as system time, but these values are too small to be significant in my experiments.} 
+\footnotetext{Do note that for single-threaded applications, user time and real time are (more or less) the same. No graphs are therefore provided for the real time measurements. The ''less'' refers to the fact that there are some units of time scheduled as system time, but these values are too small to be significant in these experiments.}
 
-% Data is collected by pausing the process just before normal termination and reading from the process' stat file in \code{/proc/[pid]/stat} for time and \code{/proc/[pid]/status} for memory peaks (see the linux man pages for \code{proc} \cite{proc}). 
-% %TODO: Make sure this is correct
-% The information gathered is the amount of time used (both user and system time), the peak size of the resident set and the peak virtual memory.
-% 
-% This measuring process is not applicable for third party software, so in my comparisons to the Haggard-Pearce algorithm \cite{haggard}, I've used the GNU \code{time} program (version 1.7). Time data is much the same between both methods, but memory usage data is not.
+\subsection{\code{bhkk-pari-0.3}}
+The most powerful implementation is called \code{bhkk-pari-0.3}. It implements these optimizations: $q = 0, 1$, $w_{min}(G)$, parallelization. We show here its time and memory consumption in relation to both $n$ and $dE$.
+
+\begin{center}
+\begin{tabular}{rl}
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs of fized density},
+legend pos=north west,baseline,trim axis left,small,
+xlabel=$n$,
+ylabel=Average real time (ms)]
+\addplot[red,mark=triangle*] table[x=n,y=rt] {tables/bhkk-pari-0.3_1};
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-pari-0.3_2};
+\addplot[black, domain=4:23] {(1/100)*x*2^x};
+\legend{$dE = 40$, $dE = 75$, $f_t$}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs of fized density},
+legend pos=north west,baseline,trim axis right,small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$n$,
+ylabel=Average peak resident set size (kB)]
+\addplot[red,mark=triangle*] table[x=n,y=rss] {tables/bhkk-pari-0.3_1};
+\addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-pari-0.3_2};
+\addplot[black, domain=4:23] {(32)*(1.2916)^x + 10000};
+\legend{$dE = 40$, $dE = 75$, $f_m$}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs of fixed $n$},
+legend pos=north west,baseline,trim axis left,small,
+xlabel=$dE$,
+ylabel=Average real time (ms)]
+\addplot[red,mark=triangle*] table[x=dE,y=rt] {tables/bhkk-pari-0.3_3};
+% \addplot[black, domain=4:23] {(1/100)*x*2^x};
+% \legend{lol, $f_t$}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs of fixed $n$},
+legend pos=north west,baseline,trim axis right,small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$dE$,
+ylabel=Average peak resident set size (kB)]
+\addplot[red,mark=triangle*] table[x=dE,y=rss] {tables/bhkk-pari-0.3_3};
+% \addplot[black, domain=4:23] {(32)*(1.2916)^x + 10000};
+% \legend{lol, $f_m$}
+\end{axis}
+\end{tikzpicture}
+\\
+\end{tabular}
+\end{center}
+
+%TODO: Some comments on the results.
+
+\subsection{Practical improvements}
+Here ''dense'' means $dE = 75$ and ''sparse'' means $dE = 40$.
+
+First we show the performance improvements for the three specifications implementations linked to the PARI library, versions 0.1, 0.2 and 0.3. 0.2 implemented parallelization.
+
+\begin{center}
+\begin{tabular}{rl}
+\begin{tikzpicture}
+\begin{axis}[title={Random dense graphs},
+legend pos=north west,baseline,trim axis left,small,
+xlabel=$n$,
+ylabel=Average real time (ms)]
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-pari-0.1_2};
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-pari-0.2_2};
+\addplot[red,mark=triangle*] table[x=n,y=rt] {tables/bhkk-pari-0.3_1};
+% \addplot[black, domain=4:23] {(1/100)*x*2^x};
+\legend{0.1, 0.2, 0.3}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={Random dense graphs},
+legend pos=north west,baseline,trim axis right,small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$n$,
+ylabel=Average peak resident set size (kB)]
+\addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-pari-0.1_2};
+\addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-pari-0.2_2};
+\addplot[red,mark=triangle*] table[x=n,y=rss] {tables/bhkk-pari-0.3_1};
+% \addplot[black, domain=4:23] {(32)*(1.2916)^x + 10000};
+\legend{0.1, 0.2, 0.3}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[title={Random sparse graphs},
+legend pos=north west,baseline,trim axis left,small,
+xlabel=$n$,
+ylabel=Average real time (ms)]
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-pari-0.1_1};
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-pari-0.2_1};
+\addplot[red,mark=triangle*] table[x=n,y=rt] {tables/bhkk-pari-0.3_2};
+% \addplot[black, domain=4:23] {(1/100)*x*2^x};
+\legend{0.1, 0.2, 0.3}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={Random sparse graphs},
+legend pos=north west,baseline,trim axis right,small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$n$,
+ylabel=Average peak resident set size (kB)]
+\addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-pari-0.1_1};
+\addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-pari-0.2_1};
+\addplot[red,mark=triangle*] table[x=n,y=rss] {tables/bhkk-pari-0.3_2};
+% \addplot[black, domain=4:23] {(32)*(1.2916)^x + 10000};
+\legend{0.1, 0.2, 0.3}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs, $n = 19$},
+legend pos=north west,baseline,trim axis left,small,
+xlabel=$dE$,
+ylabel=Average real time (ms)]
+\addplot[blue,mark=asterisk] table[x=dE,y=rt] {tables/bhkk-pari-0.1_3};
+\addplot[blue,mark=asterisk] table[x=dE,y=rt] {tables/bhkk-pari-0.2_5};
+\addplot[red,mark=triangle*] table[x=dE,y=rt] {tables/bhkk-pari-0.3_3};
+% \addplot[black, domain=4:23] {(1/100)*x*2^x};
+\legend{0.1, 0.2, 0.3}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs, $n = 19$},
+legend pos=north west,baseline,trim axis right,small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$dE$,
+ylabel=Average peak resident set size (kB)]
+\addplot[blue,mark=asterisk] table[x=dE,y=rss] {tables/bhkk-pari-0.1_3};
+\addplot[blue,mark=asterisk] table[x=dE,y=rss] {tables/bhkk-pari-0.2_5};
+\addplot[red,mark=triangle*] table[x=dE,y=rss] {tables/bhkk-pari-0.3_3};
+% \addplot[black, domain=4:23] {(32)*(1.2916)^x + 10000};
+\legend{0.1, 0.2, 0.3}
+\end{axis}
+\end{tikzpicture}
+\\
+\end{tabular}
+\end{center}
+
+All parallelized runs are executed using 45 virtual threads. Of course, the test machine only allows 12 threads in parallel, but experiments have shown that using 45 threads costs less time and more memory. For the sake of brevity, these results are omitted from this paper.
+
+\subsubsection{NTL}
+To provide a little insight in how important the actual implementation of polynomial arithmetic is, we also show a comparison of the implementation linked with PARI and the one linked with NTL.
+
+\begin{center}
+\begin{tabular}{rl}
+\begin{tikzpicture}
+\begin{axis}[title={Random dense graphs},
+legend pos=north west,baseline,trim axis left,small,
+xlabel=$n$,
+ylabel=Average real time (ms)]
+\addplot[red,mark=triangle*] table[x=n,y=rt] {tables/bhkk-pari-0.3_1};
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-ntl-0.3_1};
+% \addplot[black, domain=4:23] {(1/100)*x*2^x};
+\legend{\code{bhkk-pari-0.3}, \code{bhkk-ntl-0.3}, $f_t$}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={Random dense graphs},
+legend pos=north west,baseline,trim axis right,small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$n$,
+ylabel=Average peak resident set size (kB)]
+\addplot[red,mark=triangle*] table[x=n,y=rss] {tables/bhkk-pari-0.3_1};
+\addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-ntl-0.3_1};
+% \addplot[black, domain=4:23] {(32)*(1.2916)^x + 10000};
+\legend{\code{bhkk-pari-0.3}, \code{bhkk-ntl-0.3}, $f_m$}
+\end{axis}
+\end{tikzpicture}
+\\
+\end{tabular}
+\end{center}
+
+The results are consistently in significant favour of PARI.
+
+\subsection{Relation to other work}
+
 
 \subsection{PARI 2.5.5}
 % Some text about PARI. %TODO
@@ -989,6 +1145,7 @@ Not yet done.
 \bibitem{strass} \url{https://en.wikipedia.org/wiki/Sch\%C3\%B6nhage\%E2\%80\%93Strassen_algorithm}
 \bibitem{haggard} Haggard, Pearce, Royle, 2010: \emph{Computing Tutte Polynomials}
 % Definitions of sparse and dense: Coleman, Thomas F.; Moré, Jorge J. (1983), "Estimation of sparse Jacobian matrices and graph coloring Problems", SIAM Journal on Numerical Analysis 20 (1): 187–209, doi:10.1137/0720013. https://en.wikipedia.org/wiki/Dense_graph#CITEREFColemanMor.C3.A91983
+\bibitem{signed_petersen} \url{http://arxiv.org/pdf/1311.1760.pdf}
 
 \end{thebibliography}
 
