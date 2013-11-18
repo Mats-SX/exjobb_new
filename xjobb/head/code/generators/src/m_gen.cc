@@ -116,11 +116,11 @@ int main(int argc, char** argv) {
 
 			ostringstream outname;
 			outname << "input/adjm/hundred/";
-			outname << "m_" << n << "_" << dm << "-" << k;
+			outname << "g_" << n << "_" << dm << "-" << k;
 
 			ofstream outfile(outname.str().c_str());
 
-			outfile << n /*<< " " << mpz_get_ui(m)*/ << "\n";
+			outfile << n << " " << mpz_get_ui(m) << "\n";
 			for (int i = 0; i < n; ++i) {
 				for (int j = 0; j < n; ++j) {
 					outfile << matrix[i * n + j];
