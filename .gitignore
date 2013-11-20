@@ -22,8 +22,8 @@
 # They are instead released and kept track of in another place
 xjobb/head/common/bins/
 
-# No need to keep track of all input formats
-xjobb/head/common/input/edgelists/
+# No need to keep track of all input files
+xjobb/head/common/input/
 
 # I've decided to deprecate autotests.
 # We do not need to keep track of its files.
