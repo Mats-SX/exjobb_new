@@ -12,8 +12,9 @@ import java.util.regex.Matcher;
 
 public class Tester {
 	public static final String TIME = "/usr/bin/time --format=\"%U&%e&%M&%C\"";
-	public static final String PATH_TO_INPUT = "input/adjm/hundred/";
+	public static String PATH_TO_INPUT = "input/adjm/hundred/";
 	public static final String PATH_TO_OUTPUT = "output/javatests/";
+	public static boolean tutte = false;
 
 	private static class ProtocolParser {
 		private Scanner scanner;
@@ -56,7 +57,7 @@ public class Tester {
 				String line = getTestLine();
 				if (line == null)
 					return null;
-				System.out.println(line);
+				//System.out.println(line);
 				Scanner lineScan = new Scanner(line);
 				threads = lineScan.nextInt();
 				String arg = lineScan.next();
@@ -82,8 +83,8 @@ public class Tester {
 
 		private void init() {
 			String line = getTestLine();
-			cmd = line.split(" ")[0];
-			nbrTests = Integer.valueOf(line.split(" ")[1]);
+			cmd = line.substring(0, line.lastIndexOf(" "));
+			nbrTests = Integer.valueOf(line.substring(line.lastIndexOf(" ") + 1));
 			curTest = nbrTests;
 		}
 
@@ -106,7 +107,7 @@ public class Tester {
 		 * 8. t
 		 */
 		public static final Pattern timePattern = Pattern.compile(
-				"(\\d+)\\.(\\d{2})&(\\d+)\\.(\\d{2})&(\\d+)&.+_(\\d+)_(\\d+)-\\d{0,3}\\s?(\\d*)");
+		"(\\d+)\\.(\\d{2})&(\\d+)\\.(\\d{2})&(\\d+)&.+_(\\d+)_(\\d+)-\\d{0,3}\\s?(\\d*)");
 		private FileWriter writer;
 		private int fileNbr;
 		private final String outfileName;
@@ -148,6 +149,11 @@ public class Tester {
 				rssmax += _rssmax / datapoints;
 				n = Integer.valueOf(m.group(6));
 				dE = Integer.valueOf(m.group(7));
+				if (tutte) {
+					// dE is really m. need to convert
+					dE *= 100;
+					dE = dE / ((n * (n-1)) / 2);
+				}
 				t = 0;
 				if (!m.group(8).isEmpty()) {
 					t = Integer.valueOf(m.group(8));
@@ -194,6 +200,10 @@ public class Tester {
 	}
 
 	public static void main(String[] args) {
+		if (args.length > 1 && args[1].equals("tutte")) {
+			tutte = true;
+			PATH_TO_INPUT = "input/edgelists/hundred/";
+		}
 		ProtocolParser pp = new ProtocolParser(args[0]);
 		Runtime rt = Runtime.getRuntime();
 
