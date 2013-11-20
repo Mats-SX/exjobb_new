@@ -1,6 +1,6 @@
 
 
-DEBUG	= true
+DEBUG	= false
 ifeq ($(DEBUG), true)
 CXXFLAGS += -g
 LDFLAGS += -g
@@ -27,7 +27,7 @@ CXXFLAGS 	+= -Wall -Wextra -pedantic-errors -std=c++11 -pthread
 CXXFLAGS	+= -m64 -mtune=corei7-avx -march=corei7-avx
 
 # Programs
-PRGS		= chr_pol_pari chr_pol_ntl
+PRGS		= chr_pol_pari #chr_pol_ntl
 OBJS		= *.o
 DFILES		= $(addprefix $(VPATH), $(wildcard *.d))
 
