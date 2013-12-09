@@ -193,14 +193,25 @@ public class Tester {
 
 		BufferedReader stdout = new BufferedReader(
 				new InputStreamReader(is));
+		int len = 10;
+		char[] buf = new char[len];
 		String line = null;
-		while ((line = stdout.readLine()) != null) {
-			System.out.println(line);
+		int read = 0;
+		while (stdout.ready()) {
+			read = stdout.read(buf, read, 10);
+			if (read == len) {
+				System.out.println(buf);
+				read = 0;
+			}
 		}
 	}
 
 	public static void main(String[] args) {
-		if (args.length > 1 && args[1].equals("tutte")) {
+		boolean silent = false;
+		if (args.length > 1 && args[1].equals("-q")) {
+			silent = true;
+		}
+		if (args.length > 2 && args[2].equals("tutte")) {
 			tutte = true;
 			PATH_TO_INPUT = "input/edgelists/hundred/";
 		}
@@ -219,8 +230,10 @@ public class Tester {
 //				System.out.println("Running cmd: " + cmd);
 				Process pr = rt.exec(cmd);
 
-				// For nice output
-				stdoutput(pr.getInputStream());
+				if (!silent) {
+					// For nice output
+					stdoutput(pr.getInputStream());
+				}
 
 				try {
 					pr.waitFor();
