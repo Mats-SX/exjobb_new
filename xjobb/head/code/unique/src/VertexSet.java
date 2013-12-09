@@ -80,6 +80,15 @@ public class VertexSet {
 		private final int id;
 		//private final int degree;
 		private final HashSet<Vertex> neighbours;
+		private int colour;
+		
+		public void setColour(int c) {
+			colour = c;
+		}
+		
+		public int getColour() {
+			return colour;
+		}
 
 		public Vertex() {
 			this.id = ID_COUNTER++;

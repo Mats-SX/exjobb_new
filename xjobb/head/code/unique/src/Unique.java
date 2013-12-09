@@ -16,14 +16,13 @@ public class Unique {
 		 */
 		
 		String infile = args[0];
-		int q = 3;
 
 		ArrayList<Vertex> V = new ArrayList<Vertex>();
 		parse(infile, V);
 
 
 		UniqueColouring uc = new UniqueColouring(V);
-		uc.init();
+//		uc.init();
 
 		if (uc.colour()) {
 			System.out.println(infile + " contains a uniquely 3-colourable graph!");
@@ -32,6 +31,7 @@ public class Unique {
 		} else {
 			System.out.println(infile + " does not contain a uniquely 3-colourable graph!");
 		}
+		uc.printMetrics();
 	}
 
 	/**
@@ -57,6 +57,7 @@ public class Unique {
 
 		/* Create n vertices */
 		/* Each vertex will end up on position i, where i is also their id */
+		// I don't seem to make use of this fact ...
 		for (int i = 0; i < n; ++i) {
 			V.add(new Vertex());
 		}

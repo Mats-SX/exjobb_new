@@ -3,7 +3,7 @@ package src;
 import java.util.ArrayList;
 import src.VertexSet.Vertex;
 
-public class UniqueColouring {
+public class UniqueColouring extends Thread {
 	private VertexSet[] s;
 	private ArrayList<Vertex> V;
 	private int simpleSet;
@@ -11,8 +11,16 @@ public class UniqueColouring {
 	private static long LOOPS = 0;
 	private static long SIMPLE = 0;
 	private static long HARD = 0;
+	private static long STARTS = 0;
+	private static long TIME = 0;
+	private static long THREADS = 0;
+	private static long THREADS2 = 0;
+	private static long MAXTHREADS = 0;
+	
+	private boolean colourable = false;
 
 	public UniqueColouring(ArrayList<Vertex> V) {
+		super();
 		s = new VertexSet[3];
 		s[0] = new VertexSet();
 		s[1] = new VertexSet();
@@ -25,6 +33,7 @@ public class UniqueColouring {
 			VertexSet s1,
 			VertexSet s2,
 			VertexSet s3) {
+		super();
 		this.V = V;
 		this.s = new VertexSet[3];
 		s[0] = new VertexSet(s1);
@@ -32,17 +41,91 @@ public class UniqueColouring {
 		s[2] = new VertexSet(s3);
 		simpleSet = -1;
 	}
+	
+	public void run() {
+		colourable = colourInParallel();
+		THREADS2++;
+	}
+	
+	private synchronized void setMax() {
+		long max = THREADS - THREADS2;
+		if (max > MAXTHREADS)
+			MAXTHREADS = max;
+	}
 
-	/** Sets the first two vertices into s1 and s2.
-	 * This is always correct behaviour.
+	/** 
+	 * Sets the first two vertices v and w into s1 and s2
+	 * These are selected so that:
+	 * vw is an edge in G
+	 * The number of calls on run() from this method is bounded by O(n^2)
 	 */
-	public void init() {
-		Vertex v0 = V.remove(0);
-		Vertex v1 = v0.getNeighbours().iterator().next();
-		s[0].add(v0);
-		s[1].add(v1);
-		V.remove(v0);
-		V.remove(v1);
+	public boolean colour() {
+		ArrayList<Vertex> copyOfV = new ArrayList<Vertex>(V);
+		VertexSet used = new VertexSet();
+		
+		TIME = System.currentTimeMillis();
+		for (int i = V.size() - 1; i > -1; --i) {
+			Vertex v = V.get(i);
+			used.add(v);
+			for (Vertex w : v.getNeighbours()) {
+				if (used.contains(w)) {
+					continue;
+				}
+				++STARTS;
+				s[0].add(v);
+				s[1].add(w);
+				V.remove(v);
+				V.remove(w);
+				colourable = colourInParallel();
+				if (colourable) {
+					TIME = System.currentTimeMillis() - TIME;
+					return true;
+				} else {
+					/* Reset data structures */
+					V = new ArrayList<Vertex>(copyOfV);
+					s[0] = new VertexSet();
+					s[1] = new VertexSet();
+					s[2] = new VertexSet();
+				}
+			}
+		}
+		TIME = System.currentTimeMillis() - TIME;
+		return false;
+		
+//		ArrayList<Vertex> copyOfV = new ArrayList<Vertex>(V);
+//		// I AM HERE!
+//		for (int i = 0; i < V.size(); ++i) {
+//			Vertex v = V.get(i);
+//			for (Vertex v1 : v.getNeighbours()) {
+//				for (Vertex v2 : v1.getNeighbours()) {
+//					if (v2.equals(v))
+//						continue;
+//					for (Vertex w : v2.getNeighbours()) {
+//						if (w.equals(v1))
+//							continue;
+//						if (v.isNeighbourOf(w) &&
+//								!v.isNeighbourOf(v2) &&
+//								!v1.isNeighbourOf(w)) {
+//							++STARTS;
+//							s[0].add(v);
+//							s[1].add(w);
+//							V.remove(v);
+//							V.remove(w);
+//							run();
+//							if (colourable) {
+//								return true;
+//							} else {
+//								V.add(v);
+//								V.add(w);
+//								s[0] = new VertexSet();
+//								s[1] = new VertexSet();
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
+//		return false;
 
 //		System.out.println("Initialized a unique colouring.");
 //		System.out.println("Picked initial vertices v0, v1 = " + v0 + ", " + v1);
@@ -89,7 +172,7 @@ public class UniqueColouring {
 		return ReturnValue.FAILURE;
 	}
 
-	private boolean hardCase(Vertex w, int otherSet) {
+	private ReturnValue hardCase(Vertex w, int otherSet) {
 		++HARD;
 		for (Vertex u : w.getNeighbours()) {
 			if (isAssigned(u)) {
@@ -111,7 +194,7 @@ public class UniqueColouring {
 					// one recursive branch is T(n-1)
 					// and the other is T(n-2),
 					// yielding T(n) = T(n-1) + T(n-2)
-					// => O(2^(n/2)) (I think)
+					// => OMEGA(2^(n/2)) (I think)
 					//
 					int j = 3 - i - otherSet;
 					
@@ -126,14 +209,16 @@ public class UniqueColouring {
 					
 					UniqueColouring fst = new UniqueColouring(
 							v2, s1, s2, s[otherSet]);
+					fst.start();
+					++THREADS;
 					
-					if (fst.colour()) {
-						if (fst.solution != null)
-							solution = fst.solution;
-						else
-							solution = fst;
-						return true;
-					}
+//					if (fst.colour()) {
+//						if (fst.solution != null)
+//							solution = fst.solution;
+//						else
+//							solution = fst;
+//						return ReturnValue.SUCCESS;
+//					}
 					
 					ArrayList<Vertex> v1 = new ArrayList<Vertex>(V);
 					v1.remove(u);
@@ -141,17 +226,62 @@ public class UniqueColouring {
 					s1.add(u);
 					UniqueColouring snd = new UniqueColouring(
 							v1, s1, s[i], s[j]);
-					if (snd.colour()) {
-						if (snd.solution != null)
-							solution = snd.solution;
-						else
-							solution = snd;
-						return true;
+					snd.start();
+					++THREADS;
+					
+					while (true) {
+						try {
+							sleep(1);
+						} catch (InterruptedException e) {
+							/* The parent told us we have made a wrong decision */
+							/* Kill the children */
+							fst.interrupt();
+							snd.interrupt();
+							return ReturnValue.UNCOLOURABLE;
+						}
+						setMax();
+						if (!fst.isAlive()) {
+							if (fst.colourable) {
+								/* A child produced the colouring */
+								/* Kill the other child */
+								snd.interrupt();
+								if (fst.solution != null)
+									solution = fst.solution;
+								else
+									solution = fst;
+								return ReturnValue.SUCCESS;
+							}
+						}
+						if (!snd.isAlive()) {
+							if (snd.colourable) {
+								/* A child produced the colouring */
+								/* Kill the other child */
+								fst.interrupt();
+								if (snd.solution != null)
+									solution = snd.solution;
+								else
+									solution = snd;
+								return ReturnValue.SUCCESS;
+							}
+						}
+						if (!fst.isAlive() && !snd.isAlive()) {
+							/* Both are dead and none is colourable */
+							return ReturnValue.UNCOLOURABLE;
+						}
 					}
+					
+//					if (snd.colour()) {
+//						if (snd.solution != null)
+//							solution = snd.solution;
+//						else
+//							solution = snd;
+//						return ReturnValue.SUCCESS;
+//					}
 				}
 			}
 		}
-		return false;
+		/* There was no applicable neighbour for this vertex */
+		return ReturnValue.FAILURE;
 	}
 	
 	private boolean isAssigned(Vertex v) {
@@ -163,7 +293,7 @@ public class UniqueColouring {
 		return false;
 	}
 
-	public boolean colour() {
+	public boolean colourInParallel() {
 		++LOOPS;
 		ReturnValue rv = null;
 		
@@ -173,6 +303,23 @@ public class UniqueColouring {
 		Vertex first = null;
 		
 		while (true) {
+			
+			/* See if another branch has found a colouring */
+			if (interrupted()) {
+				
+//				try {
+//					join();
+//				} catch (InterruptedException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+				return false;
+			}
+
+//			/* See if another branch has found a colouring */
+//			if (deadEnd) {
+//				return false;
+//			}
 			
 			if (V.isEmpty())
 				/* We have successfully assigned all vertices */
@@ -225,9 +372,11 @@ public class UniqueColouring {
 			 * We call them recursively.
 			 */
 			
-			if (hardCase(w, simpleSet)) {
+			rv = hardCase(w, simpleSet);
+			switch (rv) {
+			case SUCCESS:
 				return true;
-			} else {
+			case FAILURE:
 				/*
 				 * Both recursions failed, we need to start over with
 				 * another start vertex
@@ -242,7 +391,10 @@ public class UniqueColouring {
 					 * uniquely 3-colourable.
 					 */
 					return false;
-				}	
+				}
+				break;
+			case UNCOLOURABLE:
+				return false;
 			}
 		}
 	}
@@ -254,9 +406,14 @@ public class UniqueColouring {
 		System.out.println(solution.s[0]);
 		System.out.println(solution.s[1]);
 		System.out.println(solution.s[2]);
-		
-		System.out.println("Metrics:\tloops\tsimple\thard");
-		System.out.println("\t\t" + LOOPS + "\t" + SIMPLE + "\t" + HARD);
+	}
+	
+	public void printMetrics() {
+		System.out.println("Metrics:\tloops\tsimple\thard\tstarts" +
+				"\ttime\tthreads\tthreads2\tmaxthr");
+		System.out.println("\t\t" + LOOPS + "\t" + SIMPLE + 
+				"\t" + HARD + "\t" + STARTS + "\t" + TIME +
+				"\t" + THREADS + "\t" + THREADS2 + "\t" + MAXTHREADS);
 	}
 	
 	private enum ReturnValue {
