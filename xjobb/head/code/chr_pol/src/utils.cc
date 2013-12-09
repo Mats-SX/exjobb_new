@@ -251,6 +251,10 @@ void utils::parallel(
 			// TODO: Fix this loop so it executes in time 2^|X1| instead of 2^c
 			// where c is the position of the most significant bit of x1, or, in 
 			// set terms, the highest-numbered vertex present in X1.
+			//
+			// OTOH: This is not a computation that is 'counted'.
+			// Ie, it's not addition or multiplication of a polynomial, 
+			// so it's 'free'.
 
 			if ((y1 | x1) <= x1) { // <=> Y1 is subset of X1
 				// if Y1 is independent in G
@@ -309,8 +313,8 @@ void utils::parallel(
 
 #ifdef PARI
 		(*r) = gerepile(ltop, lbot, *r);
+	//	pari_printf("%Ps\n", leading_term(*r));
 #endif
-		//std::cout << "I finished!" << std::endl;
 	}
 #ifdef PARI
 	pari_thread_close();
@@ -502,8 +506,14 @@ void utils::parse(std::ifstream& infile, bool** matrix, u_int_t& n) {
 
 void utils::part_n(const u_int_t& n, u_int_t& n1, u_int_t& n2) {
 	if (N_LESS_64) {
+		
 		n1 = ceil(n * (log(2) / log(3)));
 		n2 = n - n1;
+		
+		/*
+		n1 = ceil(n / 2);
+		n2 = n - n1;
+		*/
 	} else {
 		// fix for larger types
 	}
