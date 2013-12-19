@@ -34,7 +34,7 @@ typedef NTL::ZZX rval_t;
 #ifdef PARI
 typedef GEN rval_t;
 typedef pari_thread pth_t;
-static u_int_t PARI_STACK_CHUNK = 1000000ul;
+static u_int_t PARI_STACK_CHUNK = 10000000ul;
 #endif
 
 template <class T>
