@@ -7,21 +7,26 @@
 \usepackage{times}
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{float}
 \restylefloat{table}
 \usepackage{multicol}
 \usepackage{wasysym}
+\usepackage[square,sort,comma,numbers]{natbib}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.3}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
 \usepackage{fancyvrb}
 \usepackage{enumerate}
 \fvset{tabsize=3}
 \fvset{fontsize=\small}
 \newcommand{\code}{\texttt}
+\newtheorem{lemma}{Lemma}
 
 \title{\huge{Performance measurements of a small-space Chromatic Polynomial algorithm}}
 
-\author{Mats Rydberg}
+\author{Mats Rydberg\thanks{Master's Thesis student at the Department of Computer Science, Faculty of Engineering (LTH) at Lund University, Lund, Sweden. E-mail: \code{dt08mr7@student.lth.se}. This work was conducted as a part of the authors Master's Thesis project. Supervisor: Thore Husfeldt, prof. in Comp. Science at LTH.}}
 \date{\today}
 
 \begin{document}
@@ -29,70 +34,74 @@
 \maketitle
 
 \begin{abstract}
- The \emph{chromatic polynomial} $\chi_G(t)$ of a graph $G$ on $n$ vertices is a univariate polynomial of degree $n$, passing through the points $(q, P(G,q))$ where $P(G,q)$ is the number of $q$-colourings of $G$. In this paper, we present an implementation of an algorithm by Björklund et al which computes $\chi_G(t)$ in time $O^*(2^n)$ and space $O^*(1.2916^n)$. We compare the performance of two different core libraries to eachother and show our performance against an implementation done by Haggard et al from 2010. 
- We also present the chromatic polynomial for a certain graph specified by Hillar \& Windfeldt.
+The \emph{chromatic polynomial} $\chi_G(t)$ of a graph $G$ on $n$ vertices is a univariate polynomial of degree $n$, passing through the points $(q, P(G,q))$ where $P(G,q)$ is the number of $q$-colourings of $G$. In this paper, we present an implementation of an algorithm by Björklund, Husfeldt, Kaski and Koivisto that computes $\chi_G(t)$ in time $O^*(2^n)$ and space $O^*(1.2916^n)$. We compare the performance of two different core libraries to eachother and show our performance against an implementation done by Haggard, Pearce and Royle from 2010. 
+We also present the chromatic polynomials for a small Queen graph and a certain graph specified by Hillar and Windfeldt.
 \end{abstract}
 
 \newpage
 
 \section{Introduction}
 
-A \emph{proper $q-$colouring} of a graph $G = (V, E)$ is a mapping $\sigma: V \rightarrow [q]$ where $[q] = \{1,2,\ldots,q\}$ with $\sigma(v) \neq \sigma(w)$ if $vw \in E$. In other words, it is an assignment of a \emph{colour} to each vertex $v$ such that no two adjacent vertices get the same colour.
-The number of ways to $q$-colour $G$ is $P(G,q)$, and the \emph{chromatic polynomial} $\chi_G(t)$ of a graph $G$ passes through each point $(q, P(G,q)$. In other words, it \emph{counts} the number of ways to colour $G$ for any amount of colours.
-In particular, the \emph{chromatic number} is the smallest $c$ for which $\chi_G(c) > 0$. $\chi_G(t)$ is of high interest in the field of algebraic graph theory, as one of the main artifacts characterizing a graph. Graph colouring is a canonical NP-hard problem, but it also has practical applications for register allocation, scheduling, pattern matching, and in statistical physics, the chromatic polynomial occurs as the zero-temperature limit of the antiferromagnetic Potts model. \cite{chaitin} \cite{marx}
+A \emph{proper $q$-colouring} of a graph $G = (V, E)$ is a mapping $\sigma: V \rightarrow [q]$ where $[q] = \{1,2,\ldots,q\}$ such that $\sigma(v) \neq \sigma(w)$ for each $vw \in E$. In other words, $\sigma$ is an assignment of a \emph{colour} to each vertex $v$ such that no two adjacent vertices get the same colour.
+The number of ways to $q$-colour $G$ is $P(G,q)$, and the \emph{chromatic polynomial} $\chi_G(t)$ of a graph $G$ passes through each point $(q, P(G,q))$. In other words, it \emph{counts} the number of ways to colour $G$ for any amount of colours.
+In particular, the \emph{chromatic number} is the smallest $c$ for which $\chi_G(c) > 0$. The polynomial $\chi_G(t)$ is of high interest in the field of algebraic graph theory, as one of the main graph invariants. Graph colouring is a canonical NP-hard problem, but it also has practical applications for register allocation, scheduling, pattern matching, and in statistical physics, the chromatic polynomial occurs as the zero-temperature limit of the antiferromagnetic Potts model (see for instance \cite{chaitin}, \cite{marx}, and \cite{pottsmodel}).
 
-%TODO: Find source for antiferromagnetic Potts model claim
-
+\subsection{History}
 The chromatic polynomial was specified in 1912 by Birkhoff \cite{birkhoff}, who defined it for planar graphs with the intent on proving the Four Colour Theorem. Whitney extended its definition to general graphs in 1932 \cite{whitney}, and Tutte incorporated it into what is now known as the Tutte polynomial.
-Haggard, Pearce and Royle \cite{haggard} published a program (referred to here as \textbf{HPR}) to compute the Tutte polynomial for graphs using a deletion-contraction algorithm. HPR exploits the isomorphism of induced subgraphs to obtain good performance, and can easily handle many instances of non-trivial sizes. Using the fact that the Tutte polynomial encodes the chromatic polynomial (as well as other graph invariants), HPR is also designed to output $\chi_G(t)$. 
-Björklund, Husfeldt, Kaski and Koivisto presented an algorithm to compute the chromatic polynomial in time $O(2^n)$ and space $O(1.2916^n)$, referred to here as the \textbf{BHKK} algorithm. 
+In 2010, Haggard, Pearce and Royle \cite{haggard} published a program (referred to here as \textbf{HPR}) to compute the Tutte polynomial for graphs using a deletion-contraction algorithm. HPR exploits the isomorphism of induced subgraphs to obtain good performance, and can easily handle many instances of non-trivial sizes. Using the fact that the Tutte polynomial encodes the chromatic polynomial (as well as other graph invariants), HPR is also designed to output $\chi_G(t)$. 
+In 2011, Björklund, Husfeldt, Kaski and Koivisto \cite{cov_pack} presented an algorithm to compute the chromatic polynomial in time $O^*(2^n)$ and space $O^*(1.2916^n)$, referred to here as the \textbf{BHKK} algorithm.
 
-In this report, we present an implementation of the BHKK algorithm and experimental results from running it on selected classes of graphs. In particular, we show instances where BHKK outperforms HPR, and discuss which classes of graphs this generalizes to.
+\subsection{Results}
+In this paper, we present an implementation of the BHKK algorithm and experimental results from running it on selected classes of graphs. In particular, we show that for random graphs with $|V| > 22$, the BHKK algorithm performs consistently better than the HPR algorithm, both in time and space consumption. For practically all nonempty graphs BHKK consumes less memory. Our results also show that in practice, the implementation of polynomial arithmetic is crucial, and has a large impact on overall performance.
 
-% Beck et al \cite{signed_petersen} recently presented the chromatic polynomials of the \emph{signed Petersen graphs}. They 
+Furthermore, we give the chromatic polynomial of a graph, here referred to as Akbari's graph from Akbari, Mirrokni and Sadjad \cite{akbari}, discussed in Hillar and Windfeldt \cite{hillar_windfeldt}, which Maple was unable to compute.
+We also give the chromatic polynomial of the queen graph of size $5 \times 5$ (on 25 vertices).
 
 \section{The algorithm}
-The algorithm measured in this performance test is described in Björklund et al \cite{cov_pack}, and is based on a linear-space Fast Zeta Transform described in the same paper. It is proven to perform in time $O^*(2^n)$ and space $O^*(1.2916^n)$ under certain design parameters. The measured theoretical unit of time is the time it takes to perform an addition or a multiplication of two polynomials of degree $n$. The measured theoretical unit of space is the memory needed to store such a polynomial. In practice, we can not discern this space and time from the space and time used by other parts of needed data structures, but since these dominate, we can assume that the measured space and time usage will converge asymptotically with the theoretical bounds.
+The algorithm implemented and measured in this paper is described in Björklund \emph{et al} \cite{cov_pack}, and is based on a linear-space Fast Zeta Transform described in the same paper. It is proven to perform in time $O^*(2^n)$ and space $O^*(1.2916^n)$ under certain design parameters. The measured theoretical unit of time is the time it takes to perform an addition or a multiplication of two polynomials of degree $n$. The measured theoretical unit of space is the memory needed to store such a polynomial. In practice, we can not discern this space and time from the space and time used by other parts of needed data structures, but since these dominate, we can assume that the measured space and time usage will converge asymptotically with the theoretical bounds.
 
-Our input is an undirected graph $G$ on $n$ vertices with $m$ edges\footnotemark. The main subroutine counts the number of ways to colour $G$ using $q$ colours. This is done for $q = 0, 1, \ldots n$, yielding $n + 1$ points $(x_i, y_i)$. These are by definition points which the chromatic polynomial $\chi_G(t)$ passes through. $\chi_G(t)$ has exactly degree $n$, and so we have enough information to recover it explicitly (ie, specifying its coefficients) using interpolation.
+Our input is an undirected graph $G$ on $n$ vertices with $m$ edges\footnotemark. The main subroutine counts the number of ways to colour $G$ using $q$ colours. This is done for $q = 0, 1, \ldots n$, yielding $n + 1$ points $(x_i, y_i)$. These are by definition points which the chromatic polynomial $\chi_G(t)$ passes through. $\chi_G(t)$ has exactly degree $n$, and so we have enough information to recover it explicitly (i.e., specifying its coefficients) using interpolation.
 
-The general idea of the algorithm uses the principle of inclusion-exclusion to count the proper $q$-colourings of $G$ by actually counting the number of ordered partitions of $V$ into $q$ \emph{independent sets}. The low space bound is obtained by splitting $V$ into two disjoint sets $V_1$ and $V_2$ of sizes $n_1$ and $n_2$ respectively, where $n_1 = \lceil n \frac{\log2}{\log3} \rceil$ and $n_2 = n - n_1$, and then run iterations of subsets of $V_1$ and store values dependent on (subsets of) $V_2$. \cite[sec 5]{cov_pack}
+The general idea of the algorithm uses the principle of inclusion-exclusion to count the proper $q$-colourings of $G$ by actually counting the number of ordered partitions of $V$ into $q$ \emph{independent sets}. The low space bound is obtained by splitting $V$ into two disjoint sets $V_1$ and $V_2$ of sizes $n_1$ and $n_2$ respectively, where $n_1 = \lceil n \frac{\log2}{\log3} \rceil$ and $n_2 = n - n_1$, and then run iterations of subsets of $V_1$ and store values dependent on (subsets of) $V_2$ \cite[sec. 5]{cov_pack}. 
 
-\footnotetext{Multiple edges and self-edges are two graph invariants that often need special treatment in graph-based algorithms. This is not the case for graph colouring. Any self-edge means the graph is not colourable (a vertex would need to have a different colour from itself), so in this implementation we assume they do not exist. Any multiple edge doesn't affect the problem at all, as we are merely considering the \emph{existence} of an edge between two vertices; if there are more than one that doesn't matter.}
+\footnotetext{Multiple edges and self-edges are two types of edges that often need special treatment in graph-based algorithms. This is not the case for graph colouring. Any self-edge means the graph is not colourable (a vertex would need to have a different colour from itself), so in this implementation we assume they do not exist. Any multiple edge doesn't affect the problem at all, as we are merely considering the \emph{existence} of an edge between two vertices; if there are more than one that doesn't matter.}
 
 The full algorithm in pseudo-code as follows:
 
 \begin{enumerate}[{Step} A.]
- \item \label{q} For $q = 0, 1, \ldots, n$, do
- \begin{enumerate}[1.]
+\item \label{q} For $q = 0, 1, \ldots, n$, do
+\begin{enumerate}[1.]
   \item Partition $V$ into $V_1$ and $V_2$ of sizes $n_1$ and $n_2$.
   \item \label{step1} For each $X_1 \subseteq V_1$, do
   \begin{enumerate}[a)]
-   \item \label{indep1} For each independent $Y_1 \subseteq X_1$, do
-$$ h[V_2 \setminus N(Y_1)] \leftarrow h[V_2 \setminus N(Y_1)] + z^{|Y_1|} $$
-   \item \label{indep2} For each independent $Y_2 \subseteq V_2$, do
-$$ l[Y_2] \leftarrow z^{|Y_2|} $$
-   \item \label{multi} $h \leftarrow (h\zeta')\cdot l$
-   \item $h \leftarrow h\zeta$
-   \item \label{rstep}For each $X_2 \subseteq V_2$, do
-$$ r \leftarrow r + (-1)^{n - |X_1| - |X_2|}\cdot h[X_2]^q $$
+  \item \label{indep1} For each independent $Y_1 \subseteq X_1$, do
+\[ h[V_2 \setminus N(Y_1)] \leftarrow h[V_2 \setminus N(Y_1)] + z^{|Y_1|} \]
+  \item \label{indep2} For each independent $Y_2 \subseteq V_2$, do
+\[ l[Y_2] \leftarrow z^{|Y_2|} \]
+  \item \label{multi} $h \leftarrow (h\zeta')\cdot l$
+  \item $h \leftarrow h\zeta$
+  \item \label{rstep}For each $X_2 \subseteq V_2$, do
+\[ r \leftarrow r + (-1)^{n - |X_1| - |X_2|}\cdot h[X_2]^q \]
   \end{enumerate}
   \item Return coefficient $c_n$ of $z^n$ in $r$.
- \end{enumerate}
- \item Construct interpolating polynomial $\chi_G(t)$ on points $(q, c_{nq})$.
- \item Return $\chi_G(t)$.
 \end{enumerate}
-
-$N(Y)$ is the set of all vertices in $G$ adjacent to at least one vertex in $Y$, $x\zeta'$ denotes the fast up-zeta transform and $x\zeta$ the fast down-zeta transform (of $x$) (see \cite[sec 2]{cov_pack}. $h$ and $l$ are arrays of size $2^{n_2}$ of polynomials (initialized to zeroes), $r$ is a polynomial. For a more detailed description, see \cite[p 9]{cov_pack}.
+\item Construct interpolating polynomial $\chi_G(t)$ on points $(q, c_{nq})$.
+\item Return $\chi_G(t)$.
+\end{enumerate}
+Here, $N(Y)$ is the set of all vertices in $G$ adjacent to at least one vertex in $Y$, $f\zeta(U)$, given as
+\[f\zeta(U) = \sum_{Y \subseteq U} f(Y)\]
+denotes the fast down-zeta transform of a function $f$, and $f\zeta'(U)$, given as 
+\[f\zeta'(U) = \sum_{Y \supseteq U} f(Y)\]
+denotes the fast up-zeta transform of $f$ (see \cite[sec 2]{cov_pack} for the full algorithm). The arrays $h$ and $l$ of size $2^{n_2}$ contain polynomials (initialized to zeroes), $r$ is a polynomial. For a more detailed description, see \cite[p 9]{cov_pack}.
 
 \subsection{Optimizations}\label{opts}
-Here are presented some improvements to the algorithm that are either natural, mentioned in \cite{cov_pack} or invented by the author. This list is by no means exhaustive, nor is every item critical, but the ones we've explored proved to be efficient.
+Here are presented some improvements to the algorithm that are either natural, mentioned in \cite{cov_pack}, or invented by the author. This list is by no means exhaustive, nor is every item critical, but the ones we've explored proved to be efficient. 
 
 \paragraph{Exploiting $q$}
 First, we can consider optimizing on the basis of the value of $q$.
 \begin{itemize}
 \item For $q = 0$, there are 0 colourings, as no graph can be 0-coloured.
-\item For $q = 1$, there are 0 colourings if and only if $|E| > 0$, otherwise there is exactly 1 colouring. This takes $O(n^2)$ time to check, but in practice it is even faster, as we will encounter an edge with high probability before we've scanned the whole graph.
+\item For $q = 1$, there are 0 colourings if and only if $|E| > 0$, otherwise there is exactly 1 colouring. This takes $O(n^2)$ time to check.
 \item For $q = 2$, it is well-known that the graph can be coloured (or found to be non-colourable) in polynomial time using standard techniques (such as breadth-first search).
 \end{itemize}
 
@@ -101,27 +110,42 @@ These optimizations will reduce the iterations of the loop at step \ref{q} by th
 \paragraph{Using $\omega_{min}(G)$}
 A more sophisticated type of optimization involves exploiting the clique number $\omega(G)$, which is a lower bound on the chromatic number $\chi(G)$. Knowing that $\omega(G) \geq a$ for some constant $a$ would allow us to immediately skip all steps~\ref{q} where $q < a$. If $a = n$, we have the complete graph $K_n$, for which $\chi_G(t)$ is known.
 
-Here we define the \emph{density} of a graph $G$ as $dE = m/m_{max} = \frac{2m}{n(n-1)}$. This immediately tells us the \emph{smallest possible} $\omega(G)$. Let us call it $\omega_{min}(G)$. In fact, the following holds:
+Here we define the \emph{density} of a graph $G$ as $dE = m/\binom{n}{2}$, where $m$ is the number of edges in $G$. This immediately tells us the \emph{smallest possible} $\omega(G)$. Let us call it $\omega_{min}(G)$. In fact, the following holds:
 
-\begin{equation}\label{omega}
-\omega_{min}(G) = \left\{ \begin{array}{lll}
-                           n - a & \text{if } m = m_{max} - a & 0 \leq a < \lfloor\frac{n}{2}\rfloor \\
-                           \lceil\frac{n}{2}\rceil - a & \text{if } \lfloor(\frac{n}{2})^2\rfloor < m \leq m_{max} - (a + 1)\lfloor\frac{n}{2}\rfloor & 0 \leq a \leq \lfloor\frac{n}{2}\rfloor - 2 \\
-                           2 & \text{if } 0 < m \leq \lfloor(\frac{n}{2})^2\rfloor & \\
-                           1 & \text{if } m = 0 & \\
-                          \end{array}
-                  \right.
-\end{equation}
+\begin{lemma}\label{lemma1}
+The number $\omega_{min}(G)$ is the lower bound of $\omega(G)$, and its value is
+\[
+\omega_{min}(G) = 
+\begin{cases}
+	  n - \binom{n}{2} + m & \text{if } m \geq \binom{n}{2} - \lfloor n/2 \rfloor \\
+	  \lceil n / 2 \rceil - a & \text{if }  \lfloor n / 2 \rfloor \cdot \lceil n / 2 \rceil < m = \binom{n}{2} - a \lfloor n/2 \rfloor, a \in \mathbb{N}_+ \\
+	  2 & \text{if } 0 < m \leq \lfloor n / 2 \rfloor \cdot \lceil n / 2 \rceil \\
+	  1 & \text{if } m = 0 \\
+\end{cases}
+\]
+\end{lemma}
 
-As we can see from the equation, only graphs with $m > \lfloor(\frac{n}{2})^2\rfloor$ provides $\omega_{min}(G) > 2$ and for $q \leq 2$ we already have good optimizations. So how dense is a graph where this bound on $m$ holds? Let us specify the threshold density $T_{dE}(n)$ as
+% The idea of the proof is to add as many edges as possible to the empty graph $N_n$ without increasing $w(G)$, where $G$ is the resulting graph from adding edges.
 
-$$
-T_{dE}(n) = \frac{\lfloor(\frac{n}{2})^2\rfloor}{m_{max}} = 2\frac{\lfloor(\frac{n}{2})^2\rfloor}{n(n-1)} = \left\{ \begin{array}{ll}
-          \frac{n}{2(n-1)} & \text{if } n \text{ even}\\
-          \frac{n + 1}{2n} = T_{dE}(n+1) & \text{if } n \text{ odd}\\
-          \end{array}
-  \right.
-$$
+\begin{proof}
+ Trivially, $w(N_n) = 1$. This proves the lower-most bound.
+ 
+ Next, consider the complete bipartite graph $K_{\alpha,\beta}$ on $n$ vertices; it is the graph with the most edges that has clique number 2. It is well-known that it has $\alpha \beta$ edges. To maximize this product, we make a half-half partition, setting $\alpha = \lfloor n / 2 \rfloor$ and $\beta = \lceil n / 2 \rceil$, giving $\alpha \beta = \lfloor n / 2 \rfloor \lceil n / 2 \rceil$. The point made is that there is no way of assigning more edges than this without yielding a higher clique number.
+ 
+ Third, consider the complete graph $K_n$, with $w(K_n) = n$. Deleting an edge $vw$ will clearly reduce the clique number. Consider the subgraph $K \setminus \{v\}$; it has clique number $n - 1$. Removing an edge $uu', u \neq w, u' \neq w$ will lower clique number again by 1. This process may be repeated $\lfloor n / 2 \rfloor$ times. The resulting graph has $\binom{n}{2} - \lfloor n/2 \rfloor$ edges and clique number $n - \lfloor n/2 \rfloor$. This, together with the fact that removing one edge can lower clique number by maximum one, proves the uppermost bound. 
+\end{proof}
+
+For the final case, for which we do not provide a full proof, we observe that $\binom{n}{2} - \lfloor n/2 \rfloor - \lfloor n / 2 \rfloor \cdot \lceil n / 2 \rceil$ is a multiple of $\lfloor n/2 \rfloor$ (this is the variable $a$ in the lemma). It can be shown that this corresponds to the requirement of removing $\lfloor n/2 \rfloor$ edges to reduce clique number by one.
+
+As we can see from Lemma~\ref{lemma1}, only graphs with $m > \lfloor n / 2 \rfloor \cdot \lceil n / 2 \rceil$ provides $\omega_{min}(G) > 2$ and for $q \leq 2$ we already have good optimizations. So how dense is a graph where this bound on $m$ holds? Let us specify the threshold density $T_{dE}(n)$ as
+
+\[
+T_{dE}(n) = 2\frac{\lfloor n / 2 \rfloor \cdot \lceil n / 2 \rceil}{n(n-1)} =
+\begin{cases}
+	  \frac{1}{2}n(n-1)^{-1} & \text{if } n \text{ even}\\
+	  \frac{1}{2}(n+1)n^{-1} = T_{dE}(n+1) & \text{if } n \text{ odd}\\
+\end{cases}
+\]
 
 In conclusion, any graph with $dE > T_{dE}(n)$ can optimize away at least one additional computation of step~\ref{q} above. It also follows that as $n \rightarrow \infty$ we will have $T_{dE}(n) \rightarrow \frac{1}{2}$. The following plot shows how fast we converge for graphs of sizes relevant for this paper.
 
@@ -137,80 +161,85 @@ ylabel=$T_{dE}(n)$]
 \end{axis}
 \end{tikzpicture}
 \end{center}
-
-This result is quite interesting, because for larger graphs, we have a smaller $T_{dE}(n)$, which gives us a higher probability to be able to optimize, and it is also for larger graphs that we are most interested in optimizing techniques. For a graph with $n=23$ and $dE = 75$, we would be able to skip evaluating $q\leq7$, which yields a decrease in execution time by about 15\%\footnotemark. %TODO update this number 
+For larger graphs, we have a smaller $T_{dE}(n)$, which gives us a higher probability to be able to optimize, and it is also for larger graphs that we are most interested in optimizing techniques. For a graph with $n=23$ and $dE = 75$, we would be able to skip evaluating $q\leq7$, which yields a decrease in execution time by about 15\%\footnotemark. %TODO update this number 
 %UPDATED 1/11 from two tests on pari-0.2 and pari-0.2.1 and graphs 17_80 and 19_85.
 
 \footnotetext{This number is based on experimental results presented below.}
 
-\paragraph{Parallelization 1} The steps \ref{step1} are independent and can be computed in parallel on $2^{|V_1|}$ CPUs. This would yield significant time improvements in theory, reducing the asymptotic time bound to about $O^*(1.5486^n)$. Using a different partition of $V$ with $n_1 = n_2$, we would achieve space and time bounds of $O^*(2^{n/2})$ on as many CPUs. \cite{cov_pack}
+\paragraph{Parallelization 1} The steps \ref{step1} are independent and can be computed in parallel on $2^{|V_1|}$ CPUs. This would yield significant time improvements in theory, reducing the asymptotic time bound to about $O^*(1.5486^n)$. Using a different partition of $V$ with $n_1 = n_2$, we would achieve space and time bounds of $O^*(2^{n/2})$ on as many CPUs \cite{cov_pack}.
 
 \paragraph{Parallelization 2} Typically, we will only have access to a constant number of CPUs in practice, allowing each of them to not execute one step but a range of iterations of step \ref{step1}. This allows for heuristics on how to select such ranges so that the overall time bound (set by the range of subsets $X$ that include the \emph{most} independent subsets $Y$) is minimal. The currently used heuristic is to simply take the subsets in inorder. As presented below, we can expect to reduce the time consumption of the program by a factor of around 6. %TODO: make sure this number is correct.
 
 \paragraph{Parallelization 3} The steps \ref{q} are independent of eachother, and allows parallelization on $O(n)$ CPUs. This would not reduce the exponential factor of the time complexity, but it will reduce the polynomial factor, and it is likely to give significant results in practice.
 
-\paragraph{Degree pruning} In step \ref{rstep} we exponentiate a polynomial of degree $d \leq n$ with $q$, yielding a polynomial of degree $d \leq nq$. Since $q \leq n$, we could have as much as $d = n^2$. But since we never do any divisions, and never care about coefficients for terms of degree $> n$, we can simply discard these terms, keeping $d(r) \leq n$. This also applies to the multiplications of step~\ref{multi}.
+\paragraph{Degree pruning} In step \ref{rstep} we exponentiate a polynomial of degree $d \leq n$ with $q$, yielding a polynomial of degree $d \leq nq$. Since $q \leq n$, we could have as much as $d = n^2$. But since we never do any divisions, and never care about coefficients for terms of degree $> n$, we can simply discard these terms, keeping $\text{deg } r \leq n$. This also applies to the multiplications of step~\ref{multi}.
 
 \paragraph{Caching} Since in fact all steps of the inner loop of BHKK are independent from $q$, except the final step~\ref{rstep}, we are actually re-computing the same values for the array $h$ as we increase $q$. If we would cache these values after the first call of step~\ref{step1}, we would be performing only step~\ref{rstep} for all the rest of the computations, plus a look-up in our cache table. This would require a cache of size $2^{n_1} 2^{n_2} = 2^n$.
 
 
 \section{Implementation details}
-The implementation only partially supports $n > 64$. In practice, the program does not terminate in human time for such large problems anyway, so this restriction is not critical. This allows us to use a natural way of encoding a set of vertices by simply letting it be a whole integer word, 64 bits long. A one in position $i$ of the word means that vertex $i$ (for some ordering) of $G$ is present in the set represented by the word.
+The implementation only partially supports $n > 64$. In practice, the program does not terminate in human time for such large problems anyway, so this restriction is not critical. This allows us to use a natural way of encoding a set of vertices by simply letting it be a whole machine word, 64 bits long. A one in position $i$ of the word means that vertex $i$ (for some ordering) of $G$ is present in the set represented by the word.
 
 % I've chosen to support adjacency matrices as input structure, representing an arbitrary graph. Another common graph representation is the edge list, which is faster, but since our problem is exponentially hard, another degree of a polynomial term doesn't really affect our performance very much. It is also more straight-forward for me to generate randomized graphs using an adjacency matrix.
 
 For polynomial representation we employ the use of two libraries for number theoretic calculations. These also provide interpolation functionality.
 
 \subsection{NTL 6.0.0}
-The first is NTL, Number Theoretic Library, written in C++ by Victor Shoup at New York University\cite{ntl}. It is advertised as one of the fastest implementations of polynomial arithmetics, which is all that we are interested in. Unfortunately, it does not provide any non-trivial way of exponentiating polynomials, and its multiplication algorithms are a bit lackluster after some careful studying. It is very easy to use, provides its own garbage collection and has a rich, high-level interface for library usage.
+The Number Theoretic Library \cite{ntl} provides a fast implementation of polynomial arithmetics. It is a full-fledged C++ code base and provides a rich, high-level interface well suited for library usage. It does lack functionality for non-trivial polynomial exponentiation, and does not implement as many multiplication algorithms as comparable libraries.
+
+% The first is NTL, Number Theoretic Library, written in C++ by Victor Shoup at New York University\cite{ntl}. It is advertised as one of the fastest implementations of polynomial arithmetics, which is all that we are interested in. Unfortunately, it does not provide any non-trivial way of exponentiating polynomials, and its multiplication algorithms are a bit lackluster after some careful studying. It is very easy to use, provides its own garbage collection and has a rich, high-level interface for library usage.
 
 The functions used are primarily these: 
 
 \begin{itemize}
- \item \code{ZZX.operator+=()}
- \subitem Addition and assignment for polynomials. %TODO Documentation citation
- \item \code{ZZX.operator*=()}
- \subitem Multiplication and assignment for polynomials. %TODO Doc citation
+\item \code{ZZX.operator+=()}
+\subitem Addition and assignment for polynomials. %TODO Documentation citation
+\item \code{ZZX.operator*=()}
+\subitem Multiplication and assignment for polynomials. %TODO Doc citation
 \end{itemize}
 
-Binaries are called \code{bhkk-ntl-x.y.z}.
+Here, binaries compiled with NTL are called \code{bhkk-ntl-x.y.z}.
 
 \subsection{PARI 2.5.5}
-Experiencing the relative lack of performance boost from the NTL implementation led to finding also the PARI project. It is written in C mainly by a group of French computer scientists at Université Bordeaux \cite{pari}, together with a calculator-like interface (\code{gp}) to be used by an end-user (comparable to Maple). The PARI library is provided at a much lower level, requires the user to garbage collect (since it is written in C, after all), has a much steeper learning curve and a very detailed but hard-to-grasp documentation. PARI provides special methods for exponentiation of polynomials, but it is a bit unclear how these are implemented exactly.
+The PARI/GP project \cite{pari} is a computer algebra system, primarily designed as a full calculation system comparable to Maple. The back-end, PARI, is also available as a C library, providing polynomial arithmetics among other functionality.
+
+% Experiencing the relative lack of performance boost from the NTL implementation led to finding also the PARI project. It is written in C mainly by a group of French computer scientists at Université Bordeaux \cite{pari}, together with a calculator-like interface (\code{gp}) to be used by an end-user (comparable to Maple). The PARI library is provided at a much lower level, requires the user to garbage collect (since it is written in C, after all), has a much steeper learning curve and a very detailed but hard-to-grasp documentation. PARI provides special methods for exponentiation of polynomials, but it is a bit unclear how these are implemented exactly.
 
 The functions used are primarily these: 
 
 \begin{itemize}
- \item \code{ZX\_add()}
- \subitem Addition for polynomials. %TODO: doc citation
- \item \code{ZX\_mul()}
- \subitem Multiplication for polynomials. %TODO: citation from documentation
- \item \code{gpowgs()}
- \subitem General exponentiation for PARI types. Used for polynomials.
+\item \code{ZX\_add()}
+\subitem Addition for polynomials. %TODO: doc citation
+\item \code{ZX\_mul()}
+\subitem Multiplication for polynomials. %TODO: citation from documentation
+\item \code{gpowgs()}
+\subitem General exponentiation for PARI types. Used for polynomials.
 \end{itemize}
 
-Binaries are called \code{bhkk-pari-x.y.z}.
+Here, binaries compiled with PARI are called \code{bhkk-pari-x.y.z}.
 
 
 %TODO: is this part necessary?
 %The PARI library implements its own stack, which it needs to have allocated before any function calls can be made. Preferably, a large enough stack should be allocated at the start of the program, so that re-allocations will not be necessary. I am allocating 50MB of memory for the stack, which is more than enough for most instances. This has a side effect in the measurements of memory usage, meaning that the virtual memory peak is constant for all PARI executions.
 
 \subsection{GMP 5.1.2}
-Both of the libraries used to represent polynomials allow (and encourage) the user to configure them using GMP \cite{gmp} as the low-level interface for integral arithmetic (actually, for all arithmetic, but we only use integers). Authors of both libraries suggest that using GMP instead of their own, native low-level interface will yield significant performance boosts. For this reason, we have done just that. GMP is well documented, easy-to-use, provides both C and C++ interfaces and even has a well-maintained bug reporting facility (I got an answer the same day!). GMP allows the user a rich variety of configuration options, and optimization has been done as narrowly as possible to get maximum performance on one machine.
+Both libraries used for polynomial arithmetic allow for the user to configure them using GMP \cite{gmp} as the low-level interface for integral arithmetic. Authors of the libraries suggest using GMP instead of their own native low-level interfaces, as this gives better performance. GMP implements a wide range of multiplication algorithms and provides fast assembler code optimizations for various CPU types.
 
-In the implementation, GMP is only directly employed by the graph generating tool. All arithmetic is performed via the interfaces of PARI and NTL, which themselves call underlying GMP functions.
+% Both of the libraries used to represent polynomials allow (and encourage) the user to configure them using GMP \cite{gmp} as the low-level interface for integral arithmetic (actually, for all arithmetic, but we only use integers). Authors of both libraries suggest that using GMP instead of their own, native low-level interface will yield significant performance boosts. For this reason, we have done just that. GMP is well documented, easy-to-use, provides both C and C++ interfaces and even has a well-maintained bug reporting facility (I got an answer the same day!). GMP allows the user a rich variety of configuration options, and optimization has been done as narrowly as possible to get maximum performance on one machine.
+% 
+% In the implementation, GMP is only directly employed by the graph generating tool. All arithmetic is performed via the interfaces of PARI and NTL, which themselves call underlying GMP functions.
 
 \section{Algorithm performance parameters}
 The algorithm has some perks that make it perform better or worse for different input. In this section we aim to explore a few of these characteristics.
 
 \subsection{Sparse and dense graphs}\label{sparsedense}
-The algorithm in itself is designed in a way that allow for a smaller degree of complexity for \emph{dense} graphs. This is in contrast to many of the algorithms which was studied for graph colouring problems. And this is not only for very dense graphs, but the performance of the algorithm is in fact a function that is directly related to graph density, and consistently performs better for every additional edge to a graph. This follows directly from steps \ref{indep1} and \ref{indep2} above:
+The algorithm in itself is designed in a way that allow for a smaller degree of complexity for \emph{dense} graphs. This is in contrast to many previously studied algorithms for graph colouring problems. And this is not only for very dense graphs, but the performance of the algorithm is in fact a function that is directly related to graph density, and consistently performs better for every additional edge to a graph. This follows directly from steps \ref{indep1} and \ref{indep2} above:
 
-$$ h[V_2 \setminus N(Y_1)] \leftarrow h[V_2 \setminus N(Y_1)] + z^{|Y_1|} $$
+\[ h[V_2 \setminus N(Y_1)] \leftarrow h[V_2 \setminus N(Y_1)] + z^{|Y_1|} \]
 
-$$ l[Y_2] \leftarrow z^{|Y_2|} $$
+\[ l[Y_2] \leftarrow z^{|Y_2|} \]
 
-Recall that these lines will only be executed for \emph{independent} sets $Y_1$ and $Y_2$. As graph density increases, fewer subsets of the vertex set $V$ will be independent, and fewer of these lines will be executed, leading to the arrays $h$ and $l$ containing more zeroes. This has a direct effect in reducing some additions and assignments, but more importantly has side effects in all subsequent steps, as arithmetic with zero-operands is (much) faster.
+Recall that these lines will only be executed for \emph{independent} sets $Y_1$ and $Y_2$. As graph density increases, fewer subsets of the vertex set $V$ will be independent, and fewer of these lines will be executed, leading to the arrays $h$ and $l$ containing more zeros. This has a direct effect in reducing some additions and assignments, but more importantly has side effects in all subsequent steps, as arithmetic with zero-operands is (much) faster.
 
 %Addition-assignment with zero is a non-operation. Multiplication with zero is trivial, and yields even more zeroes. In the extreme case of a complete graph $G=(V,E)$, where all independent subsets of $V$ are of size 1, the most time-critical operation may be the independence testing function (which is executed on all subsets regardless of $G$).
 
@@ -225,18 +254,19 @@ Much of the complexity of the whole algorithm comes down to how polynomial multi
 % The technique used in Toom-$k$ for multiplying two large integers is to split them up in parts, introduce a polynomial representation of degree $k-1$ for these parts (the parts are coefficients), evaluate the polynomials at certain points (the choice of points is critical%TODO: citation!
 % ), perform pointwise multiplication of the evaluated polynomials, interpolate the resulting points into a resulting polynomial, and finally reconstruct the integer from the coefficients of the resulting polynomial. This technique is easily translated for polynomial multiplication as well, where the first and last steps would be skipped.
 
-The GMP library supports Karatsuba, Toom-3, Toom-4, Toom-6.5, Toom-8.5 and Schönhage-Strassen \cite[p 90]{gmp}, which means all libraries used in the programs uses these algorithms \emph{at least} when multiplying integers (ie, coefficients of polynomials).
+The GMP library supports Karatsuba, Toom-3, Toom-4, Toom-6.5, Toom-8.5 and Schönhage-Strassen \cite[p 90]{gmp} algorithms, which means all libraries used in the programs uses these algorithms \emph{at least} when multiplying integers (i.e., coefficients of polynomials).
 
 NTL implements Karatsuba, Schönhage-Strassen and another FFT-based technique for polynomials \cite{ntl_zzx}.
 
-I have not found any documentation specifying which algorithms are implemented in the PARI library for polynomial multiplication. From analyzing the source code, it seems as if PARI ''converts'' the polynomial to an integer and submits it to its integer multiplication function (which would be one of GMPs).
+The external documentation of PARI does not specify which algorithms are implemented, but Karatsuba, some version of Toom-Cook and some FFT-based algorithm seem to exist in the source code.
+
+% I have not found any documentation specifying which algorithms are implemented in the PARI library for polynomial multiplication. From analyzing the source code, it seems as if PARI ``converts'' the polynomial to an integer and submits it to its integer multiplication function (which would be one of GMPs).
 
 \section{Experimental results}
-This section presents selected results in three parts. First, we show the metrics for the best implementation currently available, and discuss how it relates to the theory described above. Second, we compare it to some of the other implementations, to visualize the impact of each development choice. Most importantly, we make a comparison between which library for polynomial arithmetic was used. Thirdly, we compare our results to the Haggard-Pearce-Royle implementation. \cite{haggard} 
-%and reproduce the results of Beck et al\cite{signed_petersen}. 
-We end by providing the chromatic polynomial for a famous graph.
+This section presents selected results in four parts. First, we show the metrics for the best implementation currently available, and discuss how it relates to the theory described above. Second, we compare it to some of the other implementations, to visualize the impact of some development choices. Most importantly, we make a comparison between which library for polynomial arithmetic was used. Thirdly, we compare our results to the Haggard-Pearce-Royle implementation.
+We end by providing the chromatic polynomials for two small Queen graphs and a graph discussed by Hillar and Windfeldt in \cite{hillar_windfeldt}. 
 
-For the first two parts, the tests are performed on randomized graphs, generated for some values of $n$ and $dE$ using a tool developed by the author. The process is basically to fill an array $A$ of size $m_{max} = \frac{n(n-1)}{2}$ with $m$ ones and rest zeroes, shuffle $A$ using Fisher-Yates shuffle and then add the edge $v_iv_{i+1}$ to the graph if $A[i] = 1$.
+For the first two parts, the tests are performed on randomized graphs, generated for some values of $n$ and $dE$ using a tool developed by the author. The process is basically to fill an array $A$ of size $\frac{1}{2}n(n-1)$ with $m$ ones and rest zeroes, shuffle $A$ using Fisher-Yates shuffle and then add the edge $v_iv_{i+1}$ to the graph if $A[i] = 1$.
 
 \subsection{Measurements}
 All tests are performed on the same machine, with the following specifications.
@@ -251,20 +281,20 @@ Compiler & GCC 4.7.2 (g++) \\
 \end{center}
 
 For all time and memory measurements, the GNU \code{time} 1.7 program is used (see the Linux man pages \cite{time}). The user time, elapsed time (real time)
-\footnote{Do note that for single-threaded applications, user time and real time are (more or less) the same. No graphs are therefore provided for the real time measurements. The ''less'' refers to the fact that there are some units of time scheduled as system time, but these values are too small to be significant in these experiments.}
+\footnote{Do note that for single-threaded applications, user time and real time are (more or less) the same. No graphs are therefore provided for the real time measurements. The ``less'' refers to the fact that there are some units of time scheduled as system time, but these values are too small to be significant in these experiments.}
 and peak resident set size are the data points recovered as measurements. These measurements are taken by running the specified program on a number
 \footnote{Usually, this is 50 or 100. Smaller for larger graphs because of time restrictions.} 
 of graphs of equal size and the average values are the ones presented.
 
 \subsection{\code{bhkk-pari-0.3}}
-The most powerful implementation is called \code{bhkk-pari-0.3}. It implements these optimizations: $q = \{0, 1\}$, $w_{min}(G)$, parallelization 1 and 2, degree pruning. We show here its time and memory consumption in relation to both $n$ and $dE$.
+The most powerful implementation is \code{bhkk-pari-0.3}. It implements these optimizations: $q = \{0, 1\}$, $w_{min}(G)$, parallelization 2, degree pruning. We show here its time and memory consumption in relation to both $n$ and $dE$.
 
 \begin{center}
 \begin{tabular}{rl}
 \begin{tikzpicture}
 \begin{semilogyaxis}[title={Random graphs of fixed density},
 legend pos=north west,baseline,trim axis left,small,
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=Average real time (ms)]
 \addplot[red,mark=triangle*] table[x=n,y=rt] {tables/bhkk-pari-0.3_1};
 \addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-pari-0.3_2};
@@ -277,7 +307,7 @@ ylabel=Average real time (ms)]
 \begin{axis}[title={Random graphs of fixed density},
 legend pos=north west,baseline,trim axis right,small,
 yticklabel pos=right, ylabel style={align=right},
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=Average peak resident set size (kB)]
 \addplot[red,mark=triangle*] table[x=n,y=rss] {tables/bhkk-pari-0.3_1};
 \addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-pari-0.3_2};
@@ -289,7 +319,7 @@ ylabel=Average peak resident set size (kB)]
 \begin{tikzpicture}
 \begin{axis}[title={Random graphs, $n = 19$},
 legend pos=north west,baseline,trim axis left,small,
-xlabel=$dE$,
+xlabel=The edge density $dE$,
 ylabel=Average real time (ms)]
 \addplot[red,mark=triangle*] table[x=dE,y=rt] {tables/bhkk-pari-0.3_3};
 % \addplot[black, domain=4:23] {(1/100)*x*2^x};
@@ -301,7 +331,7 @@ ylabel=Average real time (ms)]
 \begin{axis}[title={Random graphs, $n = 19$},
 legend pos=north west,baseline,trim axis right,small,
 yticklabel pos=right, ylabel style={align=right},
-xlabel=$dE$,
+xlabel=The edge density $dE$,
 ylabel=Average peak resident set size (kB)]
 \addplot[red,mark=triangle*] table[x=dE,y=rss] {tables/bhkk-pari-0.3_3};
 % \addplot[black, domain=4:23] {(32)*(1.2916)^x + 10000};
@@ -322,7 +352,7 @@ On the test machine, the actual parallelization width is 12. But using some wait
 \begin{tikzpicture}
 \begin{semilogyaxis}[title={Random graphs, $dE = 75$},
 legend pos=north west,baseline,trim axis left,small,
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=Average real time (ms)]
 \addplot[black,mark=+] table[x=n,y=rt] {tables/bhkk-pari-0.1_2};
 \addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-pari-0.2_2_12};
@@ -336,7 +366,7 @@ ylabel=Average real time (ms)]
 \begin{axis}[title={Random graphs, $dE = 75$},
 legend pos=north west,baseline,trim axis right,small,
 yticklabel pos=right, ylabel style={align=right},
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=Average peak resident set size (kB)]
 \addplot[black,mark=+] table[x=n,y=rss] {tables/bhkk-pari-0.1_2};
 \addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-pari-0.2_2_12};
@@ -391,7 +421,7 @@ ylabel=Average peak resident set size (kB)]
 \end{tabular}
 \end{center}
 \begin{multicols}{2}
-As mentioned above, parallelization (of width 12) allows us to terminate about six times faster. Here we plot the parallelization factor $p$ as the quota of the slowest and fastest plots above.
+As mentioned above, parallelization (of width 12) allows us to terminate about six times faster. Here we plot the parallelization factor $p$ as the quota of the non-parallelized \code{bhkk-pari-0.1} and the fastest implementation \code{bhkk-pari-0.3}.
 
 \columnbreak
 
@@ -399,7 +429,7 @@ As mentioned above, parallelization (of width 12) allows us to terminate about s
 \begin{axis}[title={Random dense graphs},
 legend pos=north west,baseline,trim axis left,tiny,
 ytick={5.5,6,6.5,7},ymin=5,ymax=7.5,
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=$p$]
 % \addplot[black,mark=+] table[x=n,y=rt] {tables/bhkk-pari-0.1_1};
 % \addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-pari-0.2_1};
@@ -412,7 +442,7 @@ ylabel=$p$]
 \end{multicols}
 
 
-\subsubsection{NTL}
+\subsubsection{Polynomial arithmetic library performance}
 To provide a little insight in how important the actual implementation of polynomial arithmetic is, we also show a comparison of the implementation linked with PARI and the one linked with NTL.
 
 \begin{center}
@@ -420,7 +450,7 @@ To provide a little insight in how important the actual implementation of polyno
 \begin{tikzpicture}
 \begin{semilogyaxis}[title={Random dense graphs},
 legend pos=north west,baseline,trim axis left,small,
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=Average real time (ms)]
 \addplot[red,mark=triangle*] table[x=n,y=rt] {tables/bhkk-pari-0.3_2};
 \addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/bhkk-ntl-0.3_2};
@@ -433,7 +463,7 @@ ylabel=Average real time (ms)]
 \begin{axis}[title={Random dense graphs},
 legend pos=north west,baseline,trim axis right,small,
 yticklabel pos=right, ylabel style={align=right},
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=Average peak resident set size (kB)]
 \addplot[red,mark=triangle*] table[x=n,y=rss] {tables/bhkk-pari-0.3_2};
 \addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/bhkk-ntl-0.3_2};
@@ -447,9 +477,9 @@ ylabel=Average peak resident set size (kB)]
 As is made clear, NTL is too slow to compete. This of course tempts the question whether there are even faster libraries to use.
 
 \subsection{Relation to other work}
-As comparison throughout the development process, we have consistently used HPR. Initially to make sure that the output were the same given same input (and hence, since HPR is a published tool by renowned authors, correct), and eventually, to ''race''. From performance tests that were made, HPR seems to do better if the input has ''some kind of structure'', rather than being ''random''. This is manifested by it performing considerably well on any ''famous'' graph (which usually is that because such graphs appeal to some ''human'' sense of pattern-recognition). But in the case of graphs generated according to the randomized process mentioned here, HPR does not scale as well as BHKK, and has a ''weak spot'' for graphs of density around 75 \cite{haggard}. More pressingly, HPR does not give good worst-case performance. Our measurements (see table~\ref{variance}) show a large ($> 95\%$) variance\footnotemark in performance on different graphs of equal size. This is not the case with BHKK, which has near-deterministic ($< 15\%$ variance) computation time from given size of input.
+As comparison throughout the development process, we have consistently used HPR. Initially to make sure that the output were the same given same input (and hence, since HPR is a published tool by renowned authors, correct), and eventually, to ``race''. From performance tests that were made, HPR seems to do better if the input has ``some kind of structure'', rather than being ``random''. This is manifested by it performing considerably well on any ``famous'' graph (which usually is famous because such graphs appeal to some ``human sense'' of pattern-recognition). But in the case of graphs generated according to the randomized process mentioned here, HPR does not scale as well as BHKK, and has a ``weak spot'' for graphs of density around 75 \cite{haggard}. More pressingly, HPR does not give good worst-case performance. Our measurements (see table~\ref{variance}) show a large ($> 95\%$) variance\footnotemark in performance on different graphs of equal size. This is not the case with BHKK, which has near-deterministic ($< 15\%$ variance) computation time from given size of input.
 
-\footnotetext{With variance, we mean $v = \frac{M - m}{M}$ where $M$ is the maximum measured value and $m$ the minimum.}
+\footnotetext{With variance, we mean the number $1 - m/M$, where $M$ is the maximum measured value and $m$ the minimum.}
 
 The main improvement of BHKK is of course the memory consumption. HPR relies on the use of a cache for recognition of isomorphic graphs in order to perform well. In (most of) these test runs we've allowed HPR to use a lot of cache, about 10GB. This is because we wish to show that BHKK can run faster even when HPR is not directly limited by its cache size.
 \begin{center}
@@ -457,7 +487,7 @@ The main improvement of BHKK is of course the memory consumption. HPR relies on 
 \begin{tikzpicture}
 \begin{semilogyaxis}[title={Random graphs, $dE = 40$},
 legend pos=north west,baseline,trim axis left,small,
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=Average real time (ms)]
 \addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/hpr_1};
 \addplot[red,mark=triangle*] table[x=n,y=rt] {../output/javatests/comp_tutte1};
@@ -469,21 +499,46 @@ ylabel=Average real time (ms)]
 \begin{semilogyaxis}[title={Random graphs, $dE = 40$},
 legend pos=north west,baseline,trim axis right,small,
 yticklabel pos=right, ylabel style={align=right},
-xlabel=$n$,
+xlabel=Number of vertices $n$,
 ylabel=Average peak resident set size (kB)]
 \addplot[blue,mark=asterisk] table[x=n,y=rss] {tables/hpr_1};
 \addplot[red,mark=triangle*] table[x=n,y=rss] {../output/javatests/comp_tutte1};
 \legend{HPR, BHKK}
 \end{semilogyaxis}
 \end{tikzpicture}
-\\
+\end{tabular}
+% \begin{tabular}{rl}
+% \begin{tikzpicture}
+% \begin{semilogyaxis}[title={Random graphs, $n = 21$},
+% legend pos=south west,baseline,trim axis left,small,
+% xlabel=The edge density $dE$,
+% ylabel=Average real time (ms)]
+% \addplot[blue,mark=asterisk] table[x=dE,y=rt] {tables/hpr_2};
+% \addplot[red,mark=triangle*] table[x=dE,y=rt] {../output/javatests/comp_tutte2};
+% \legend{HPR, BHKK}
+% \end{semilogyaxis}
+% \end{tikzpicture}
+% &
+% \begin{tikzpicture}
+% \begin{semilogyaxis}[title={Random graphs, $n = 21$},
+% legend pos=north west,baseline,trim axis right,small,
+% yticklabel pos=right, ylabel style={align=right},
+% xlabel=The edge density $dE$,
+% ylabel=Average peak resident set size (kB)]
+% \addplot[blue,mark=asterisk] table[x=dE,y=rss] {tables/hpr_2};
+% \addplot[red,mark=triangle*] table[x=dE,y=rss] {../output/javatests/comp_tutte2};
+% \legend{HPR, BHKK}
+% \end{semilogyaxis}
+% \end{tikzpicture}
+% \end{tabular}
+\begin{tabular}{rl}
 \begin{tikzpicture}
 \begin{semilogyaxis}[title={Random graphs, $n = 21$},
 legend pos=south west,baseline,trim axis left,small,
-xlabel=$dE$,
+xlabel=Number of edges $m$,
 ylabel=Average real time (ms)]
-\addplot[blue,mark=asterisk] table[x=dE,y=rt] {tables/hpr_2};
-\addplot[red,mark=triangle*] table[x=dE,y=rt] {../output/javatests/comp_tutte2};
+\addplot[blue,mark=asterisk] table[x expr=\thisrow{dE} * 2.1,y=rt] {tables/hpr_2};
+\addplot[red,mark=triangle*] table[x expr=\thisrow{dE} * 2.1,y=rt] {../output/javatests/comp_tutte2};
 \legend{HPR, BHKK}
 \end{semilogyaxis}
 \end{tikzpicture}
@@ -492,10 +547,10 @@ ylabel=Average real time (ms)]
 \begin{semilogyaxis}[title={Random graphs, $n = 21$},
 legend pos=north west,baseline,trim axis right,small,
 yticklabel pos=right, ylabel style={align=right},
-xlabel=$dE$,
+xlabel=Number of edges $m$,
 ylabel=Average peak resident set size (kB)]
-\addplot[blue,mark=asterisk] table[x=dE,y=rss] {tables/hpr_2};
-\addplot[red,mark=triangle*] table[x=dE,y=rss] {../output/javatests/comp_tutte2};
+\addplot[blue,mark=asterisk] table[x expr=\thisrow{dE} * 2.1,y=rss] {tables/hpr_2};
+\addplot[red,mark=triangle*] table[x expr=\thisrow{dE} * 2.1,y=rss] {../output/javatests/comp_tutte2};
 \legend{HPR, BHKK}
 \end{semilogyaxis}
 \end{tikzpicture}
@@ -505,28 +560,28 @@ ylabel=Average peak resident set size (kB)]
 These results are somewhat in contrast to those presented in \cite{haggard}. The data here suggests that the ''weak spot'' in terms of density would be around $dE = 50$, whereas \cite{haggard} suggests ''weak spot'' around $dE = 75$. It's made clear however, that BHKK shows better asymptotic behaviour, and that the space improvements are significant, also in practice. Note that the first test (upper graphs) were performed on a sparse graph, meaning BHKK is not working under optimal conditions.
 
 \begin{table}[H]\centering
- \begin{tabular}{ccccc} \hline
+\begin{tabular}{ccccc} \hline
   Size 			& Min. time (s)	& Max. time (s)	& Min. mem (kB)	& Max. mem (kB) \\ \hline
   $n = 19$, $m = 69$ 	& 0.30 		& 20.56		& 154,736	& 1,903,472\\ \hline
   $n = 20$, $m = 76$ 	& 0.43 		& 57.88		& 164,224	& 4,789,520 \\ \hline
   $n = 21$, $m = 84$ 	& 1.45 		& 273.09	& 224,432	& 16,424,528 \\ \hline
   $n = 22$, $m = 93$ 	& 18.97		& 1335.14	& 1,375,488	& 41,091,616 \\ \hline
- \end{tabular}
- \caption{Variance of HPR over 50 random graphs of equal size. Note that already for $n = 19$, there are over $10^{48}$ different graphs of this size possible. This implies that the (maximum) variance with high probability is even larger than our measurements.}
- \label{variance}
+\end{tabular}
+\caption{Variance of HPR over 50 random graphs of equal size. Note that already for $n = 19$, there are over $10^{48}$ different graphs of this size possible. This implies that the (maximum) variance with high probability is larger than our measurements.}
+\label{variance}
 \end{table}
 
 \begin{table}[H]\centering
- \begin{tabular}{|c|c|c|} \hline
+\begin{tabular}{|c|c|c|} \hline
   Program & Time (s) & Peak resident set size (kB) \\ \hline
   \code{bhkk-pari-0.1} & 10870 & $3.48 \cdot 10^{4}$ \\ \hline
   HPR & 4906 & $2.06 \cdot 10^{7}$ \\ \hline
- \end{tabular}
- \caption{A first result on a ''large'' instance, $n = 25$, $dE = 40$. Results are based on a single run on one graph. HPR was allowed 5000MB of cache.}
+\end{tabular}
+\caption{A first result on a ''large'' instance, $n = 25$, $dE = 40$. Results are based on a single run on one graph. HPR was allowed 5000MB of cache. \code{bhkk-pari-0.1} implements $q = \{0, 1\}$ and degree pruning.}
 \end{table}
 
 \begin{table}[H]\centering
- \begin{tabular}{|c|c|c|c|} \hline
+\begin{tabular}{|c|c|c|c|} \hline
   & CPU time (s) & Real time (s) & Peak resident set size (kB) \\ \hline
   $n = 25$, $dE = 75$ & & & \\ \hline
   \code{bhkk-pari-0.2} & 9,492 & 941 & $1.46 \cdot 10^{5}$ \\ \hline
@@ -534,27 +589,148 @@ These results are somewhat in contrast to those presented in \cite{haggard}. The
   $n = 30$, $dE = 75$ &  &  &  \\ \hline
   \code{bhkk-pari-0.2} & 556,895 & 53,834 & $7.41 \cdot 10^{5}$ \\ \hline
   HPR & > 94,000 & > 95,000 & $4.11 \cdot 10^{7}$ \\ \hline
- \end{tabular}
- \caption{Larger instances. Results are based on a single run on one graph. HPR did not terminate within the times specified here.}
+\end{tabular}
+\caption{Larger instances. Results are based on a single run on one graph. HPR did not terminate within the times specified here. \code{bhkk-pari-0.2} implements $q = \{0, 1\}$, parallelization 2 and degree pruning.}
 \end{table}
 
-Hillar \& Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(q) = q!$ (for some $q$). In their paper, they try to verify their results by testing this fact, but were unable to determine $\chi_G(t)$ using Maple. Using BHKK, we determine that for the uniquely 3-colourable graph in figure~2 in \cite{hillar_windfeldt}, $\chi_G(t) = $
-$$
+\section{Some chromatic polynomials}
+Here we provide the actual chromatic polynomials of a few famous graphs, together with data on how expensive these polynomials were to compute.
+
+\subsection{Akbari's graph}
+Hillar and Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(\chi(G)) = \chi(G)!$, or in other words that there exists only one optimal colouring, unique up to interchangability of the colours. Hillar and Windfeldt makes an attempt to verify their results by determining the chromatic polynomials of two graphs known to be uniquely 3-colourable, in order to test whether $\chi_G(3) = 3!$ for them. However, they were unable to determine the chromatic polynomial of the larger graph (on 24 vertices), Akbari's graph, seen here in figure~\ref{akbaris}, using Maple, as it uses a very naive algorithm to determine chromatic polynomials. Using BHKK, we successfully determined that for Akbari's graph, $\chi_G(t) = $
+\[
 t^{24} - 45t^{23} + 990t^{22} -14174t^{21} + 148267t^{20} - 1205738t^{19} + 7917774t^{18} - 43042984t^{17}
-$$
-$$
+\]
+\[
 + 197006250t^{16} - 767939707t^{15} + 2568812231t^{14} - 7407069283t^{13} + 18445193022t^{12}
-$$
-$$
+\]
+\[
 - 39646852659t^{11} + 73339511467t^{10} - 116102230203t^9 + 155931129928t^8
-$$
-$$
+\]
+\[
 - 175431211152t^7 + 162362866382t^6 - 120414350156t^5 + 68794778568t^4
-$$
-$$
+\]
+\[
 - 28408042814t^3 + 7537920709t^2 - 963326674t
-$$
-and in particular, $\chi_G(3) = 3!$, as expected. This took $1445$ seconds to compute. HPR terminates even faster.
+\]
+and in particular, $\chi_G(3) = 3!$, as expected. This took $1445$ seconds to compute, using our fastest implementation. HPR however terminated even faster, which was to be expected.
+
+\begin{center}
+\begin{figure}
+ \begin {tikzpicture}[-latex ,auto ,on grid ,semithick , 
+b/.style ={ circle ,draw, text=white, minimum width =7 mm, fill=black},
+g/.style ={ circle ,draw, text=blue, minimum width =7 mm, fill=gray},
+w/.style ={ circle ,draw, text=black, minimum width =7 mm, fill=white}]
+\node[g] (1) at (-2,-2) {$1$};
+\node[b] (2) at (-2,3) {$2$}
+  edge [-] (1);
+\node[w] (3) at (3,3) {$3$}
+  edge [-] (2);
+\node[w] (4) at (3,-2) {$4$}
+  edge [-] (1);
+\node[g] (5) at (-1,0) {$5$};
+\node[b] (6) at (-1,1) {$6$}
+  edge [-,bend right =10] (1)
+  edge [-] (5);
+\node[w] (7) at (0,2) {$7$}
+  edge [-] (2)
+  edge [-] (6);
+\node[g] (8) at (1,2) {$8$}
+  edge [-] (7);
+\node[b] (9) at (2,1) {$9$}
+  edge [-, bend left = 10] (4)
+  edge [-] (5)
+  edge [-] (8);
+\node[g] (10) at (2,0) {$10$}
+  edge [-, bend right = 10] (3)
+  edge [-] (6);
+\node[b] (11) at (1,-1) {$11$}
+  edge [-] (4)
+  edge [-] (7)
+  edge [-] (10);
+\node[w] (12) at (0,-1) {$12$}
+  edge [-] (1)
+  edge [-] (8)
+  edge [-] (11);
+\node[b] (13) at (10,-2) {$13$};
+\node[w] (14) at (5,-2) {$14$}
+  edge [-, bend left = 80] (2)
+  edge [-] (10)
+  edge [-] (13);
+\node[g] (15) at (5,3) {$15$}
+  edge [-, bend right = 35] (7)
+  edge [-] (14);
+\node[g] (16) at (10,3) {$16$}
+  edge [-] (13);
+\node[w] (17) at (8,-1) {$17$};
+\node[g] (18) at (7,-1) {$18$}
+  edge [-, bend left = 25] (3)
+  edge [-, bend right = 10] (13)
+  edge [-] (17);
+\node[b] (19) at (6,0) {$19$}
+  edge [-] (14)
+  edge [-] (18);
+\node[w] (20) at (6,1) {$20$}
+  edge [-] (19);
+\node[b] (21) at (7,2) {$21$}
+  edge [-, bend left=10] (16)
+  edge [-] (17)
+  edge [-] (20);
+\node[b] (22) at (8,2) {$22$}
+  edge [-, bend right = 45] (10)
+  edge [-] (18)
+  edge [-] (21);
+\node[w] (23) at (9,1) {$23$}
+  edge [-] (16)
+  edge [-] (19)
+  edge [-] (22);
+\node[g] (24) at (9,0) {$24$}
+  edge [-] (13)
+  edge [-] (17)
+  edge [-] (20)
+  edge [-] (23);
+\end{tikzpicture}
+ \caption{Akbari's graph, coloured in its unique 3-colouring with white, gray and black as colours. Figure copied from figure~2 in \cite{hillar_windfeldt}.}
+ \label{akbaris}
+\end{figure}
+\end{center}
+
+\subsection{Queen graph}
+
+The $n \times n$ \emph{Queen graph} is a graph laid out like a chess board with $n$ squares per side. Each square is a vertex and it has edges to all squares in its column, in its row and in its diagonals. In other words, to each square to which a queen could move, if placed on said square. Here we provide the chromatic polynomials of the $5 \times 5$ and $6 \times 6$ Queen graphs $Q_5$ and $Q_6$, on 25 and 36 vertices, respectively.
+
+\[
+ \chi_{Q_5}(t) = 
+ t^{25} -160t^{24} + 12400t^{23} -619000t^{22} + 22326412t^{21} -618664244t^{20}
+ \]
+ \[
+ + 13671395276t^{19} -246865059671t^{18} + 3702615662191t^{17} -46639724773840t^{16}
+ \]\[
+ + 496954920474842t^{15} -4497756322484864t^{14} + 34633593670260330t^{13}
+ \]\[
+ -226742890673713726t^{12} + 1258486280066672806t^{11} -5890734492089539317t^{10}
+ \]\[
+ + 23071456910844580538t^9 -74774310771536397886t^8 + 197510077615138465516t^7
+ \]\[
+ -416375608854898733286t^6 + 680208675481930270860t^5 -824635131668099993614t^4
+ \]\[
+ + 692768396747228503860t^3 -356298290543726707632t^2 + 83353136564448062208t^1
+\]
+
+\[
+ \chi_{Q_6}(t) = 
+\]
+
+\begin{table}[H]\centering
+\begin{tabular}{|c|c|c|c|} \hline
+  Polynomial & Algorithm & Real time (s) & Peak resident set size (kB) \\ \hline
+  $\chi_{Q_5}$ & BHKK & 1453 & 199216 \\ \hline
+  $\chi_{Q_5}$ & HPR & 2727 & 41094832 \\ \hline
+  $\chi_{Q_6}$ & BHKK & $\sim 10^{7}$ & - \\ \hline
+  $\chi_{Q_6}$ & HPR & - & - \\ \hline
+\end{tabular}
+\caption{Time and memory measurements on computing chromatic polynomials of queen graphs.}
+\end{table}
 
 % % PARI:
 % % Command being timed: "bins/chr_pol_pari input/adjm/m_25_40"
@@ -608,40 +784,45 @@ and in particular, $\chi_G(3) = 3!$, as expected. This took $1445$ seconds to co
 
 
 \newpage
-\begin{thebibliography}{9}
-\bibitem{birkhoff} G.D. Birkhoff, ''A determinant formula for the number of ways of coloring a map'', \textit{Ann. Math.} \textbf{14}, (1912), 42-46.
 
-\bibitem{cov_pack} A. Björklund, T. Husfeldt, P. Kaski, M. Koivisto, ''Covering and packing in linear space'', \textit{Inf. Process. Lett.} \textbf{111} (2011), 1033-1036.%\url{http://fileadmin.cs.lth.se/cs/Personal/Thore_Husfeldt/papers/lsfzt.pdf}
+\bibliographystyle{mats}
 
-\bibitem{chaitin} G.J. Chaitin ''Register allocation \& spilling via graph colouring'', \textit{Proc. 1982 SIGPLAN Symposium on Compiler Construction}, (1982), 98–105.
+\bibliography{bhkk_paper}
 
-\bibitem{haggard} G. Haggard, D. Pearce, G. Royle, ''Computing Tutte Polynomials'', \textit{ACM Transactions on Mathematical Software} \textbf{37} (2010), art 24.
-
-\bibitem{hillar_windfeldt} C.J. Hillar, T. Windfeldt, ''Algebraic characterization of uniquely vertex colorable graphs'', \textit{J. Combin. Theory}, \textbf{98} (2008), 400-414
-
-\bibitem{marx} D. Marx, ''Graph colouring problems and their applications in scheduling'', \textit{Periodica Polytechnica, Electrical Engineering} \textbf{48} (1–2) (2004), 11–16.
-
-\bibitem{whitney} H. Whitney, ''The coloring of graphs'', \textit{Ann. Math.} \textbf{33}, (1932), 688-718 .
-
-\bibitem{gmp} The GNU Multiple Precision library, version \code{5.1.2} \\ \url{http://gmplib.org/}
-
-%\bibitem{proc} \url{http://man7.org/linux/man-pages/man5/proc.5.html}
-
-\bibitem{time} GNU time, version \code{1.7} \\ \url{http://man7.org/linux/man-pages/man1/time.1.html}
-
-\bibitem{ntl} V. Shoup, Number Theoretic Library, version \code{6.0.0} \\ \url{http://www.shoup.net/ntl/index.html}
-
-\bibitem{ntl_zzx} V. Shoup, Number Theoretic Library, version \code{6.0.0}, Source documentation, \url{http://www.shoup.net/ntl/doc/ZZX.txt}
-
-\bibitem{pari} PARI/GP, version {\tt 2.5.5}, Bordeaux, 2013 \\ \url{http://pari.math.u-bordeaux.fr/}.
-
-\bibitem{toom-cook} Wikipedia, the Free Encyclopedia, Toom-Cook multiplication \\ \url{https://en.wikipedia.org/wiki/Toom\%E2\%80\%93Cook_multiplication}
-
-\bibitem{strass} Wikipedia, the Free Encyclopedia, Shönhage-Strassen algorithm \\ \url{https://en.wikipedia.org/wiki/Sch\%C3\%B6nhage\%E2\%80\%93Strassen_algorithm}
-
-% Definitions of sparse and dense: Coleman, Thomas F.; Moré, Jorge J. (1983), "Estimation of sparse Jacobian matrices and graph coloring Problems", SIAM Journal on Numerical Analysis 20 (1): 187–209, doi:10.1137/0720013. https://en.wikipedia.org/wiki/Dense_graph#CITEREFColemanMor.C3.A91983
-% \bibitem{signed_petersen} \url{http://arxiv.org/pdf/1311.1760.pdf}
-
-\end{thebibliography}
+% \begin{thebibliography}{9}
+% \bibitem{birkhoff} G.D. Birkhoff, ''A determinant formula for the number of ways of coloring a map'', \textit{Ann. Math.} \textbf{14}, (1912), 42-46.
+% 
+% \bibitem{cov_pack} A. Björklund, T. Husfeldt, P. Kaski, M. Koivisto, ''Covering and packing in linear space'', \textit{Inf. Process. Lett.} \textbf{111} (2011), 1033-1036.%\url{http://fileadmin.cs.lth.se/cs/Personal/Thore_Husfeldt/papers/lsfzt.pdf}
+% 
+% \bibitem{chaitin} G.J. Chaitin ''Register allocation \& spilling via graph colouring'', \textit{Proc. 1982 SIGPLAN Symposium on Compiler Construction}, (1982), 98–105.
+% 
+% \bibitem{haggard} G. Haggard, D. Pearce, G. Royle, ''Computing Tutte Polynomials'', \textit{ACM Transactions on Mathematical Software} \textbf{37} (2010), art 24.
+% 
+% \bibitem{hillar_windfeldt} C.J. Hillar, T. Windfeldt, ''Algebraic characterization of uniquely vertex colorable graphs'', \textit{J. Combin. Theory}, \textbf{98} (2008), 400-414
+% 
+% \bibitem{marx} D. Marx, ''Graph colouring problems and their applications in scheduling'', \textit{Periodica Polytechnica, Electrical Engineering} \textbf{48} (1–2) (2004), 11–16.
+% 
+% \bibitem{whitney} H. Whitney, ''The coloring of graphs'', \textit{Ann. Math.} \textbf{33}, (1932), 688-718 .
+% 
+% \bibitem{gmp} The GNU Multiple Precision library, version \code{5.1.2} \\ \url{http://gmplib.org/}
+% 
+% %\bibitem{proc} \url{http://man7.org/linux/man-pages/man5/proc.5.html}
+% 
+% \bibitem{time} GNU time, version \code{1.7} \\ \url{http://man7.org/linux/man-pages/man1/time.1.html}
+% 
+% \bibitem{ntl} V. Shoup, Number Theoretic Library, version \code{6.0.0} \\ \url{http://www.shoup.net/ntl/index.html}
+% 
+% \bibitem{ntl_zzx} V. Shoup, Number Theoretic Library, version \code{6.0.0}, Source documentation, \url{http://www.shoup.net/ntl/doc/ZZX.txt}
+% 
+% \bibitem{pari} PARI/GP, version {\tt 2.5.5}, Bordeaux, 2013 \\ \url{http://pari.math.u-bordeaux.fr/}.
+% 
+% \bibitem{toom-cook} Wikipedia, the Free Encyclopedia, Toom-Cook multiplication \\ \url{https://en.wikipedia.org/wiki/Toom\%E2\%80\%93Cook_multiplication}
+% 
+% \bibitem{strass} Wikipedia, the Free Encyclopedia, Shönhage-Strassen algorithm \\ \url{https://en.wikipedia.org/wiki/Sch\%C3\%B6nhage\%E2\%80\%93Strassen_algorithm}
+% 
+% % Definitions of sparse and dense: Coleman, Thomas F.; Moré, Jorge J. (1983), "Estimation of sparse Jacobian matrices and graph coloring Problems", SIAM Journal on Numerical Analysis 20 (1): 187–209, doi:10.1137/0720013. https://en.wikipedia.org/wiki/Dense_graph#CITEREFColemanMor.C3.A91983
+% % \bibitem{signed_petersen} \url{http://arxiv.org/pdf/1311.1760.pdf}
+% 
+% \end{thebibliography}
 
 \end{document}
