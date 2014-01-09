@@ -1,5 +1,6 @@
 #include <iostream>
 #include <unistd.h>
+#include <math.h>
 
 #include "utils.h"
 #include "interface.h"
@@ -307,6 +308,11 @@ void utils::parallel(
 
 #ifdef PARI
 			lbot = avma;
+#endif
+
+#ifdef FLINT
+//			fmpz_poly_print_pretty(*r, "x");
+//			std::cout << std::endl;
 #endif
 			add_assign(*r, h[i]);
 		}

@@ -11,6 +11,10 @@
 #include <pthread.h>
 #endif
 
+#ifdef FLINT
+#include <flint/fmpz_poly.h> 
+#endif
+
 static const bool N_LESS_64		= true;
 
 typedef unsigned long set_t;	// This represents a set. Only supports n < 64 vertices
@@ -27,14 +31,21 @@ static const sign_t S_N_ONE		= -1l;
 static std::string ZERO_STR("0");
 
 typedef std::thread thread_t;
+
 #ifdef NTLLIB
 typedef void* pth_t;
 typedef NTL::ZZX rval_t;
 #endif
+
 #ifdef PARI
 typedef GEN rval_t;
 typedef pari_thread pth_t;
 static u_int_t PARI_STACK_CHUNK = 10000000ul;
+#endif
+
+#ifdef FLINT
+typedef fmpz_poly_t rval_t;
+typedef void* pth_t;
 #endif
 
 template <class T>
