@@ -8,6 +8,8 @@
 *.out
 *.backup
 *.toc
+*.bbl
+*.blg
 
 # Object files
 *.o
