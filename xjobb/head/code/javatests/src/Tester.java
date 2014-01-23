@@ -12,7 +12,7 @@ import java.util.regex.Matcher;
 
 public class Tester {
 	public static final String TIME = "/usr/bin/time --format=\"%U&%e&%M&%C\"";
-	public static String PATH_TO_INPUT = "input/adjm/hundred/";
+	public static String PATH_TO_INPUT = "input/adjm/paper/";
 	public static final String PATH_TO_OUTPUT = "output/javatests/";
 	public static boolean tutte = false;
 
@@ -59,7 +59,10 @@ public class Tester {
 					return null;
 				//System.out.println(line);
 				Scanner lineScan = new Scanner(line);
-				threads = lineScan.nextInt();
+				threads = 0;
+				if (!tutte) {
+					threads = lineScan.nextInt();
+				}
 				String arg = lineScan.next();
 				lastArg = TIME + " " + cmd + " " + PATH_TO_INPUT + arg;
 				curTest = 0;
@@ -151,8 +154,9 @@ public class Tester {
 				dE = Integer.valueOf(m.group(7));
 				if (tutte) {
 					// dE is really m. need to convert
-					dE *= 100;
-					dE = dE / ((n * (n-1)) / 2);
+				//	dE *= 100;
+				//	dE = dE / ((n * (n-1)) / 2);
+				//	dE is m now. For this test.
 				}
 				t = 0;
 				if (!m.group(8).isEmpty()) {
@@ -213,7 +217,7 @@ public class Tester {
 		}
 		if (args.length > 2 && args[2].equals("tutte")) {
 			tutte = true;
-			PATH_TO_INPUT = "input/edgelists/hundred/";
+			PATH_TO_INPUT = "input/edgelists/paper/";
 		}
 		ProtocolParser pp = new ProtocolParser(args[0]);
 		Runtime rt = Runtime.getRuntime();
@@ -227,7 +231,7 @@ public class Tester {
 					trw.setNewFile();
 				}
 
-//				System.out.println("Running cmd: " + cmd);
+		//		System.out.println("Running cmd: " + cmd);
 				Process pr = rt.exec(cmd);
 
 				if (!silent) {

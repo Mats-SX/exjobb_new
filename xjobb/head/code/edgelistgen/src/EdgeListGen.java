@@ -7,7 +7,7 @@ public class EdgeListGen {
 	/**
 	 * args[0] needs to be a filename of a file containing an adjacency matrix
 	 * OR
-	 * if args[1] == 'd', we will read all files in a directory. We assumed they
+	 * if args[1] == 'd', we will read all files in a directory. We assume they
 	 * are called args[0]-i, with i in [0,99]
 	 */
 	public static void main(String[] args) throws Exception {
@@ -27,7 +27,7 @@ public class EdgeListGen {
 
 			String outname = "input/edgelists/";
 			if (dir) {
-				outname += "hundred/";
+				outname += "paper/";
 			}
 			outname += "el_" + String.valueOf(n);
 
