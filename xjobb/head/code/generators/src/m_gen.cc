@@ -7,6 +7,7 @@
 #include <gmp.h>
 #include <cstdlib>
 #include <vector>
+#include <cmath>
 
 using namespace std;
 
@@ -47,12 +48,13 @@ int main(int argc, char** argv) {
 		iss.str(line);
 		iss.clear();
 
-		int dm, n;
+		int alpha, n, type;
 		iss >> n;
-		iss >> dm;
+		iss >> alpha;
+		iss >> type;
 
-		cout << "Input read: n = " << n << ", dm = " << dm << endl;
-		cout << "Generating " << inst << " such graphs." << endl;
+		cout << "Input read: n = " << n << ", alpha = " << alpha << endl;
+		cout << "Generating " << inst << " such graphs of type " << type << ".\n";
 
 		gmp_randstate_t state;
 		gmp_randinit_default(state);
@@ -67,9 +69,28 @@ int main(int argc, char** argv) {
 			mpz_mul_ui(m_max, m_max, n - 1);	// m_max *= n-1
 			mpz_cdiv_q_ui(m_max, m_max, 2);		// m_max /= 2
 
-			// m = (dm/100)*m_max
-			mpz_mul_ui(m, m_max, dm);		// m = m_max*dm
-			mpz_cdiv_q_ui(m, m, 100);		// m /= 100
+			if (type == -1) { // old behaviour
+				// m = (alpha/100)*m_max
+				mpz_mul_ui(m, m_max, alpha);		// m = m_max*alpha
+				mpz_cdiv_q_ui(m, m, 100);		// m /= 100
+			} else {
+				double t = 0;
+				if (type == 0) {
+					// quadratic increase in edges
+					t = alpha * n * n;
+				} else if (type == 1) {
+					// linear increase in edges
+					t = alpha * n;
+				} else if (type == 2) {
+					// loglin increase in edges
+					t = alpha * log(n) * n;
+				} else if (type == 3) {
+					// quadoverlog increase in edges
+					t = alpha * n * n / log(n);
+				}
+				mpz_set_ui(m, static_cast<unsigned long>(t));
+				mpz_cdiv_q_ui(m, m, 100);
+			}
 
 			//		mpz_set(m_cur, m_max);			// m_cur = m_max
 
@@ -115,8 +136,17 @@ int main(int argc, char** argv) {
 			}
 
 			ostringstream outname;
-			outname << "input/adjm/hundred/";
-			outname << "g_" << n << "_" << dm << "-" << k;
+			outname << "input/adjm/paper/";
+			if (type == 0) {
+				outname << "quad/";
+			} else if (type == 1) {
+				outname << "linear/";
+			} else if (type == 2) {
+				outname << "loglin/";
+			} else if (type == 3) {
+				outname << "quadoverlog/";
+			}
+			outname << "g_" << n << "_" << alpha << "-" << k;
 
 			ofstream outfile(outname.str().c_str());
 
