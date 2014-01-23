@@ -376,31 +376,26 @@ These results are somewhat in contrast to those presented in \cite{haggard}. The
 Here we provide the actual chromatic polynomials of a few famous graphs, together with data on how expensive these polynomials were to compute.
 
 \subsection{Akbari's graph}
-Hillar and Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(\chi(G)) = \chi(G)!$, or in other words that there exists only one optimal colouring, unique up to interchangability of the colours. Hillar and Windfeldt makes an attempt to verify their results by determining the chromatic polynomials of two graphs known to be uniquely 3-colourable, in order to test whether $\chi_G(3) = 3!$ for them. However, they were unable to determine the chromatic polynomial of the larger graph (on 24 vertices), Akbari's graph, seen here in figure~\ref{akbaris}, using Maple, as it uses a very naive algorithm to determine chromatic polynomials. Using BHKK, we successfully determined that for Akbari's graph, $\chi_G(t) = $
-\[
-t^{24} - 45t^{23} + 990t^{22} -14174t^{21} + 148267t^{20} - 1205738t^{19} + 7917774t^{18} - 43042984t^{17}
-\]
-\[
-+ 197006250t^{16} - 767939707t^{15} + 2568812231t^{14} - 7407069283t^{13} + 18445193022t^{12}
-\]
-\[
-- 39646852659t^{11} + 73339511467t^{10} - 116102230203t^9 + 155931129928t^8
-\]
-\[
-- 175431211152t^7 + 162362866382t^6 - 120414350156t^5 + 68794778568t^4
-\]
-\[
-- 28408042814t^3 + 7537920709t^2 - 963326674t
-\]
+Hillar and Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(\chi(G)) = \chi(G)!$, or in other words that there exists only one optimal colouring, unique up to interchangability of the colours. Hillar and Windfeldt makes an attempt to verify their results by determining the chromatic polynomials of two graphs known to be uniquely 3-colourable, in order to test whether $\chi_G(3) = 3!$ for them. However, they were unable to determine the chromatic polynomial of the larger graph (on 24 vertices), Akbari's graph, seen here in figure~\ref{akbaris}, using Maple, as it uses a very naive algorithm to determine chromatic polynomials. Using BHKK, we successfully determined $\chi_{Akbari}(t)$:
+\begin{equation*}
+\begin{split}
+\chi_{Akbari}(t) & =  t^{24} - 45t^{23} + 990t^{22} -14174t^{21} + 148267t^{20} - 1205738t^{19} \\ & \quad
++ 7917774t^{18} - 43042984t^{17} + 197006250t^{16} - 767939707t^{15} \\ & \quad 
++ 2568812231t^{14}  - 7407069283t^{13} 
++ 18445193022t^{12} \\ & \quad
+- 39646852659t^{11} + 73339511467t^{10} - 116102230203t^9 \\ & \quad
++ 155931129928t^8 - 175431211152t^7 + 162362866382t^6 \\ & \quad - 120414350156t^5 
++ 68794778568t^4 - 28408042814t^3 \\ & \quad + 7537920709t^2 - 963326674t
+\end{split}
+\end{equation*}
 and in particular, $\chi_G(3) = 3!$, as expected. This took $1445$ seconds to compute, using our fastest implementation. HPR however terminated even faster, which was to be expected.
 
-\begin{center}
 \begin{figure}
 \centering
- \begin {tikzpicture}[-latex, auto, on grid, semithick, scale=.7,inner sep=0,
-b/.style ={ circle, draw, text=white, minimum width =5 mm, fill=black},
-g/.style ={ circle, draw, text=blue, minimum width =5 mm, fill=gray},
-w/.style ={ circle, draw, text=black, minimum width =5 mm, fill=white}]
+ \begin {tikzpicture}[semithick, inner sep = 1,trim left = -70,
+b/.style ={ circle ,draw, text=white, minimum width = 6 mm, fill = black!100},
+g/.style ={ circle ,draw, text=blue, minimum width = 6 mm, fill = black!50},
+w/.style ={ circle ,draw, text=black, minimum width = 6 mm, fill = white!0}]
 \node[g] (1) at (-2,-2) {$1$};
 \node[b] (2) at (-2,3) {$2$}
   edge [-] (1);
@@ -430,6 +425,7 @@ w/.style ={ circle, draw, text=black, minimum width =5 mm, fill=white}]
   edge [-] (10);
 \node[w] (12) at (0,-1) {$12$}
   edge [-] (1)
+  edge [-] (5)
   edge [-] (8)
   edge [-] (11);
 \node[b] (13) at (10,-2) {$13$};
@@ -458,6 +454,7 @@ w/.style ={ circle, draw, text=black, minimum width =5 mm, fill=white}]
   edge [-] (20);
 \node[b] (22) at (8,2) {$22$}
   edge [-, bend right = 45] (10)
+  edge [-, bend right = 20] (15)
   edge [-] (18)
   edge [-] (21);
 \node[w] (23) at (9,1) {$23$}
@@ -470,32 +467,28 @@ w/.style ={ circle, draw, text=black, minimum width =5 mm, fill=white}]
   edge [-] (20)
   edge [-] (23);
 \end{tikzpicture}
- \caption{Akbari's graph, coloured in its unique 3-colouring with white, gray and black as colours. Figure copied from figure~2 in \cite{hillar_windfeldt}. This graph was used as a counter-example to disprove a conjecture due to Shaoji Xu (see \cite{akbari}), as it has $(\chi(G) - 1)n - \binom{\chi(G)}{2} = 45$ edges but is triangle-free.}
+ \caption{Akbari's graph, coloured in its unique 3-colouring with white, gray and black as colours. Figure copied from figure~2 in \cite{hillar_windfeldt}.}
  \label{akbaris}
 \end{figure}
-\end{center}
 
 \subsection{Queen graph}
 
 The $n \times n$ \emph{Queen graph} is a graph laid out like a chess board with $n$ squares per side. Each square is a vertex and it has edges to all squares in its column, in its row and in its diagonals. In other words, to each square to which a queen could move, if placed on said square. Here we provide the chromatic polynomial of the $5 \times 5$ Queen graph $Q_5$, on 25 vertices.
 
-\[
- \chi_{Q_5}(t) = 
- t^{25} -160t^{24} + 12400t^{23} -619000t^{22} + 22326412t^{21} -618664244t^{20}
- \]
- \[
- + 13671395276t^{19} -246865059671t^{18} + 3702615662191t^{17} -46639724773840t^{16}
- \]\[
- + 496954920474842t^{15} -4497756322484864t^{14} + 34633593670260330t^{13}
- \]\[
- -226742890673713726t^{12} + 1258486280066672806t^{11} -5890734492089539317t^{10}
- \]\[
- + 23071456910844580538t^9 -74774310771536397886t^8 + 197510077615138465516t^7
- \]\[
- -416375608854898733286t^6 + 680208675481930270860t^5 -824635131668099993614t^4
- \]\[
- + 692768396747228503860t^3 -356298290543726707632t^2 + 83353136564448062208t^1
-\]
+\begin{equation*}
+\begin{split}
+\chi_{Q_5}(t) & = t^{25} -160t^{24} + 12400t^{23} -619000t^{22} + 22326412t^{21} -618664244t^{20} \\ & \quad 
++ 13671395276t^{19} -246865059671t^{18} + 3702615662191t^{17} \\ & \quad
+-46639724773840t^{16} + 496954920474842t^{15}  -4497756322484864t^{14} \\ & \quad 
++ 34633593670260330t^{13} -226742890673713726t^{12} \\ & \quad 
++ 1258486280066672806t^{11} -5890734492089539317t^{10} \\ & \quad 
++ 23071456910844580538t^9 -74774310771536397886t^8 \\ & \quad  
++ 197510077615138465516t^7 -416375608854898733286t^6  \\ & \quad 
++ 680208675481930270860t^5 -824635131668099993614t^4 \\ & \quad 
++ 692768396747228503860t^3 -356298290543726707632t^2  \\ & \quad 
++ 83353136564448062208t
+\end{split}
+\end{equation*}
 
 \begin{table}[H]\centering
 \begin{tabular}{|c|c|c|c|} \hline
