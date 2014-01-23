@@ -1,0 +1,556 @@
+\documentclass{cslthse-msc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+%\usepackage[T1]{fontenc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[titletoc, header, page]{appendix}
+\usepackage{amsthm}
+\usepackage{float}
+\restylefloat{table}
+\usepackage{multicol}
+\usepackage{wasysym}
+\usepackage[square,sort,comma,numbers]{natbib}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.3}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{fancyvrb}
+\usepackage{enumerate}
+\fvset{tabsize=3}
+\fvset{fontsize=\small}
+\newcommand{\code}{\texttt}
+\newcommand{\density}{$dE$}
+\newtheorem{lemma}{Lemma}
+
+\title{\huge{Algorithmic Engineering Aspects of Fast Zeta Transform-based Graph Colouring Algorithms}}
+
+\author{Mats Rydberg \\
+    {\normalsize \href{mailto:rydbergmats@gmail.com}{\texttt{rydbergmats@gmail.com}}}}
+\supervisor{Thore Husfeldt, \href{mailto:thore.husfeldt@cs.lth.se}{\code{thore.husfeldt@cs.lth.se}}}
+\examiner{Jonas Skeppstedt, \href{mailto:thore.husfeldt@cs.lth.se}{\code{jonas.skeppstedt@cs.lth.se}}}
+\date{\today}
+
+\acknowledgements{
+Thank you.
+}
+
+\theabstract{
+The \emph{chromatic polynomial} $\chi_G(t)$ of a graph $G$ on $n$ vertices is a univariate polynomial of degree $n$, passing through the points $(q, P(G,q))$ where $P(G,q)$ is the number of $q$-colourings of $G$. In this paper, we present an implementation of an algorithm by Björklund, Husfeldt, Kaski and Koivisto that computes $\chi_G(t)$ in time $O^*(2^n)$ and space $O^*(1.2916^n)$. We compare the performance of two different core libraries to eachother and show our performance against an implementation done by Haggard, Pearce and Royle from 2010. 
+We also present the chromatic polynomials for a small Queen graph and a certain graph specified by Hillar and Windfeldt.
+}
+
+\keywords{graph colouring, algorithms, chromatic polynomial, master's thesis, parallelization}
+
+\begin{document}
+\makefrontmatter
+
+\chapter{Introduction}
+In this report, we will present experimental results from simulations and tests run on implementations of a few algorithms presented in a report by Björklund, Husfeldt, Kaski and Koivisto \cite{cov_pack}. The two main results of that report is an algorithm for performing an algorithm, \emph{the fast zeta transform}, with reduced space requirement from before, along with an application of this result on an algorithm for computing the \emph{chromatic polynomial} of a graph. Our focus will lie on the chromatic polynomial algorithm, but in the process of constructing that program, we also completed implementations of three more direct applications of the fast zeta transform algorithm, solving the familiar \emph{set cover}, \emph{set partition} and \emph{set packing} problems.
+
+\section{Report structure}
+We will begin with a theoretical introduction into the area of graph theory, present some previous scientific results, continue with the problem statement that has guided our work during this Master's Thesis, and then shortly mention some of our main results. In the following chapters, we will go through the working process in a more detailed manner, present reflections and in-depth results from the experiments that we have carried through. In the appendix we present selected parts of the code base which make up our implementations, and the chromatic polynomials of a few mentioned graphs.
+
+\section{Preliminaries}
+Here we present all necessary definitions and theoretical notation that will be used in this report. In the case of a ill-defined variable used in the following, we refer the reader to this section.
+
+\subsection{Set problems} \label{setproblems}
+In the \emph{set cover} problem, we are given a set $U$, a family $\mathcal{F}$ of subsets of $U$ and a natural number $q$, and are tasked with the problem of deciding whether there are $q$ sets in $\mathcal{F}$ whose union equals $U$. In the \emph{set partition} problem, we must decide whether there are $q$ \emph{pairwise disjoint} sets in $\mathcal{F}$ whose union equals $U$. In the \emph{set packing} problem, we must decide whether there are $q$ pairwise disjoint subsets of $\mathcal{F}$ whose union is a \emph{subset} of $U$. Two sets are disjoint if they have no elements in common.
+
+The \emph{counting} versions of these problems asks instead \emph{how many} distinct such selections of sets that exist. In this report, we will only discuss counting versions of these (and other) problems.
+
+\subsection{Chromatic polynomial}
+A \emph{graph} is a set of two distinct abstract units called \emph{vertices} and \emph{edges}; an edge being a connection between two vertices. The vertices are contained in a vertex set $V$, and we say that the graph has \emph{order} $n$ if $|V| = n$. Similarly, we have an edge set $E$, and say that the graph has \emph{size} $m = |E|$; the maximum size of a graph of order $n$ is $\binom{n}{2} = n(n-1)/2$. We write a graph $G$ as $G = (V,E)$. An edge $vw \in E$ implies $v \in V$ and $w \in V$, where $v$ and $w$ are the vertices connected by $vw$; $v$ and $w$ are said to be \emph{adjacent}. In this report, edges are undirected, have multiplicity $leq 1$ and are never loops. An example graph is found in figure~\ref{moser}.
+
+In the \emph{graph colouring} problem, we are given a graph $G = (V,E)$ and a natural number $q$, and tasked to determine whether there exists a mapping $\sigma: V \rightarrow [q]$ where $[q] = \{0,1,\ldots,q\}$, such that $\sigma(v) \neq \sigma(w)$ for each $vw \in E$. In other words, $\sigma$ is an assignment of one of $q$ \emph{colours} to each vertex such that no two adjacent vertices get the same colour; we call such an assignment a \emph{proper $q$-colouring} of $G$. The counting version of this problem asks \emph{how many} distinct such mappings exist; we call this number $P(G,q)$.
+
+The \emph{chromatic polynomial} $\chi_G(t)$ of the graph $G$ is the polynomial of degree $n$ in one indeterminate that passes through each point $(q, P(G,q))$. To determine $\chi_G(t)$, by for example specifying its coefficients, it suffices to determine the numbers $P(G,q)$ for each $q \leq n$ and then construct $\chi_G(t)$ by interpolation, as $n + 1$ points uniquely identifies an $n$-degree polynomial. Figure~\ref{moser} presents the chromatic polynomial for a given graph.
+
+ \begin{figure}[b]
+ \centering
+ \begin{multicols}{2}
+ \begin {tikzpicture}[-latex ,auto ,on grid ,semithick , inner sep = 2,
+a/.style ={ circle, draw, text=white, minimum width = 3 mm, fill = black },
+b/.style ={ circle, draw, text=black, minimum width = 3 mm, fill = black!66 },
+c/.style ={ circle, draw, text=black, minimum width = 3 mm, fill = black!33 },
+d/.style ={ circle, draw, text=black, minimum width = 3 mm, fill = black!0 }]
+\node[a] (1) at (-3,-3) {$1$};
+\node[b] (2) at (-2,-1) {$2$}
+  edge [-] (1);
+\node[c] (3) at (-1,-2) {$3$}
+  edge [-] (1)
+  edge [-] (2);
+\node[a] (4) at (0,0) {$4$}
+  edge [-] (2)
+  edge [-] (3);
+\node[c] (5) at (1,-2) {$5$}
+  edge [-] (4);
+\node[b] (6) at (2,-1) {$6$}
+  edge [-] (4)
+  edge [-] (5);
+\node[d] (7) at (3,-3) {$7$}
+  edge [-] (1)
+  edge [-] (5)
+  edge [-] (6);
+\end{tikzpicture}
+
+\columnbreak
+
+\begin{tabular}{ll}
+$\chi_{MS}(t) = $ & $t^7 - 11t^6 + 51t^5 $ \\
+& $- 129t^4 + 188t^3$ \\
+& $- 148t^2 + 48t $ \\
+& \\
+$\chi_{MS}(4) = $ & $ 384 $ \\
+\end{tabular}
+
+\end{multicols}
+  \caption{To the left, the Moser Spindle graph, $MS$, on $n = 7$ vertices and $m = 11$ edges, coloured in four different gray scales. To the right, its chromatic polynomial $\chi_{MS}(t)$.}
+  \label{moser}
+\end{figure}
+
+\subsection{Miscellaneous}
+The \emph{chromatic number} $\chi(G)$ of the graph $G$ is the smallest $q$ for which $\chi_G(q) \neq 0$; it is the minimum amount of colours needed to produce a proper colouring of $G$. Graph \emph{density} \density{} is the size of the graph over its maximum size.
+
+\section{Background}
+The chromatic polynomial was specified in 1912 by Birkhoff \cite{birkhoff}, who defined it for planar graphs with the intent on proving the Four Colour Theorem. Whitney extended its definition to general graphs in 1932 \cite{whitney}, and Tutte incorporated it into what is now known as the Tutte polynomial. See for example Ellis-Monaghan and Merino \cite{tuttebook} for more in-depth analysis of the Tutte polynomial.
+In 2010, Haggard, Pearce and Royle \cite{haggard} published a program, referred to in the following as \textbf{HPR}, to compute the Tutte polynomial for graphs using a deletion-contraction algorithm. HPR exploits the isomorphism of induced subgraphs to obtain good performance, and can easily handle many instances of non-trivial sizes. Using the fact that the Tutte polynomial encodes the chromatic polynomial (as well as other graph invariants), HPR is also designed to output $\chi_G(t)$. 
+In 2011, Björklund, Husfeldt, Kaski and Koivisto \cite{cov_pack} presented an algorithm to compute the chromatic polynomial in time $O^*(2^n)$ and space $O^*(1.2916^n)$, referred to here as the \textbf{BHKK} algorithm. The notation $O^*$ hides polylogarithmic factors.
+
+\section{Problem statement}
+The main question is whether the BHKK algorithm performs well in practice. Irrefutably, it does provide theoretical improvements in the form of a better asymptotic bound on space usage. Intuitively, using less memory means we spend less time handling the memory, and this could reduce also the time consumption. But as the asymptotic bound stays solid, we can not know for sure how impactful such a reduction could be. Björklund \emph{et al} also mentions that BHKK parallelizes well, and provides theoretical bounds suggesting how much of an improvement parallelization provides \cite[p.10]{cov_pack}. Haggard \emph{et al} does not perform an asymptotic analysis of their algorithm, but simply shows experimental results showing it performs ``well''. We will use HPR as a reference in our experiments, making us able to conclude that BHKK does provide improvement if it outperforms HPR. We attempt to answer the following direct questions:
+
+\begin{enumerate}
+ \item Does BHKK outperform HPR as the order of the graph increases? \label{ngrow}
+ \item What is the maximum order of a graph that BHKK can compute the chromatic polynomial in human time for? \label{maxn}
+ \subitem With ``human time'', we mean less than a month.
+ \item How does the graph size affect HPR and BHKK, respectively? \label{mgrow}
+ \item How much of an improvement can parallelization provide in practice? \label{parallel}
+\end{enumerate}
+
+\section{Main results}
+The answers to the stated questions are, in short:
+
+\begin{enumerate}
+ \item Yes, for $n > 21$.
+ \item 30.
+ \item BHKK is faster with increasing size; HPR is slower.
+ \item About 600\%.
+\end{enumerate}
+
+We find proof that BHKK does provide better asymptotic behaviour than HPR, for random graphs of quadratic size. We were able to compute the chromatic polynomial of a 30-order graph, but were unable to compute it for a 36-order graph.
+
+\chapter{Approach}
+In this chapter we present an in-depth view of the algorithms studied, including special characteristics that aided us in their implementation. We describe the implementation process in some detail and present the external libraries that were employed. Finally we describe the setup of the experimental environment, including our measurement methods.
+
+
+\section{Studied algorithms}
+While our emphasis lies on the BHKK algorithm for computing chromatic polynomials, we will here briefly describe also a few other algorithms that were studied as a part of our work.
+
+\subsection{The fast zeta transform}
+Björklund \emph{et al} \cite{cov_pack} base their work on an improvement of the fast zeta transform, FZT. There are two versions of FZT, the down-zeta transform $f\zeta$ and the up-zeta transform $f'\zeta$, and they are defined as
+\[
+ f\zeta(X) = \sum_{Y \subseteq X} f(Y), \qquad f'\zeta(X) = \sum_{Y \supseteq X} f(Y)
+\]
+for a function $f$ defined for subsets $X$ of an $n$-sized universe $U$. In \cite[p.5]{cov_pack} is described pseudo-code for an algorithm computing the fast zeta transform in time and space exponential in $n$. 
+
+In the \emph{linear-space} fast zeta transform, we are given additional input in the form of a set family $\mathcal{F}$ that contains all defined inputs for the function $f$. In other words, $f(X) = 0$ if $X \notin \mathcal{F}$. The main idea is to split $U$ into disjoint parts $U_1$ and $U_2$ with sizes $n_1$ and $n_2$ respectively, and to iterate over them separately. The algorithm is outlined in \cite[sec.3]{cov_pack}, and uses $O^*(|\mathcal{F}|)$ space:
+
+\begin{enumerate}[1.]
+ \item For each $X_1 \in U_1$ do:
+ \begin{enumerate}[a)]
+  \item For each $Y_2 \in U_2$, set $g(Y_2) \leftarrow 0$.
+  \item For each $Y \in \mathcal{F}$, if $Y \cap U_1 \subseteq X_1$ then set $g(Y \cap U_2) \leftarrow g(Y \cap U_2) + f(Y)$.
+  \item Compute $h \leftarrow g\zeta$.
+  \item For each $X_2 \subseteq U_2$, output $h(X_2)$ as the value $f\zeta(X_1 \cup X_2)$. \label{fztoutput}
+ \end{enumerate}
+\end{enumerate}
+With $n_2 = |\mathcal{F}|$, the linear-space bound is guaranteed.
+
+\subsection{Coverings, partitionings and packings}
+The linear-space FZT has direct applications on some set problems, see section~\ref{setproblems}. For $q$-cover, the function $f$ is $f(Y) = [ Y \in \mathcal{F} ]$, where $[P]$ denotes one if $P$ is true, and zero otherwise, and we find the number of $q$-covers as 
+\begin{equation} \label{cq}
+c_q(\mathcal{F}) = \sum_{X \in U} (-1)^{|U \setminus X|} f\zeta(X)^q.
+\end{equation}
+In the algorithm, we in step~\ref{fztoutput} do not output the values $h(X_2)$, but sum them according to \ref{cq}, outputting the resulting value $c_q$.
+
+The number of $q$-partitions is the $n$th coefficient of the polynomial $d_q$, derived as in \ref{cq}, but with $f = [Y \in \mathcal{F}]z^{|Y|}$ operating in a ring of polynomials, with indeterminate $z$, instead. Now we perform all arithmetics using polynomials instead of integers, a fact we will see having a substantial impact on time and space requirements.
+
+Finally, for $q$-packings, 
+
+
+\subsection{Chromatic polynomial}
+By adapting the linear-space FZT, an algorithm for the chromatic polynomial was designed in \cite{cov_pack}. The space bound for the resulting algorithm is increased to $O^*(1.29153^n)$.
+
+Our input is an undirected graph $G$ on $n$ vertices with $m$ edges. The main subroutine counts the number of ways to colour $G$ using $q$ colours. This is done for $q = 0, 1, \ldots n$, yielding $n + 1$ points $(x_i, y_i)$. Interpolating on these points yields the chromatic polynomial $\chi_G(t)$.
+
+The general idea of the algorithm uses the principle of inclusion-exclusion to count the proper $q$-colourings of $G$ by actually counting the number of ordered partitions of $V$ into $q$ \emph{independent sets}. The low space bound is obtained by splitting $V$ into two disjoint sets $V_1$ and $V_2$ of sizes $n_1$ and $n_2$ respectively, where $n_1 = \lceil n \frac{\log2}{\log3} \rceil$ and $n_2 = n - n_1$, and then run iterations of subsets of $V_1$ and store values dependent on (subsets of) $V_2$ \cite[sec. 5]{cov_pack}. 
+
+The full algorithm in pseudo-code as follows:
+
+\begin{enumerate}[{Step} A.]
+\item \label{q} For $q = 0, 1, \ldots, n$, do
+\begin{enumerate}[1.]
+  \item Partition $V$ into $V_1$ and $V_2$ of sizes $n_1$ and $n_2$.
+  \item \label{step1} For each $X_1 \subseteq V_1$, do
+  \begin{enumerate}[a)]
+  \item \label{indep1} For each independent $Y_1 \subseteq X_1$, do
+\[ h[V_2 \setminus N(Y_1)] \leftarrow h[V_2 \setminus N(Y_1)] + z^{|Y_1|} \]
+  \item \label{indep2} For each independent $Y_2 \subseteq V_2$, do
+\[ l[Y_2] \leftarrow z^{|Y_2|} \]
+  \item \label{multi} $h \leftarrow (h\zeta')\cdot l$
+  \item $h \leftarrow h\zeta$
+  \item \label{rstep}For each $X_2 \subseteq V_2$, do
+\[ r \leftarrow r + (-1)^{n - |X_1| - |X_2|}\cdot h[X_2]^q \]
+  \end{enumerate}
+  \item Return coefficient $c_n$ of $z^n$ in $r$.
+\end{enumerate}
+\item Construct interpolating polynomial $\chi_G(t)$ on points $(q, c_{nq})$.
+\item Return $\chi_G(t)$.
+\end{enumerate}
+Here, $N(Y)$ is the set of all vertices in $G$ adjacent to at least one vertex in $Y$. The arrays $h$ and $l$ of size $2^{n_2}$ contain polynomials (initialized to zeroes), $r$ is a polynomial. For a more detailed description, see \cite[p 9]{cov_pack}.
+
+In subsequent sections, we will refer to this algorithm as ``the algorithm'', ``the BHKK algorithm'', or simply ``BHKK''.
+
+\section{Algorithmic aspects}
+There are some characteristics of the algorithm that deserve special mention, and that has had some influence on the way we have approached the task of implementing it. Here we present some of these characteristics.
+
+\subsection{Graph density}
+The algorithm in itself is designed in a way that allow for a smaller degree of complexity for \emph{dense} graphs, that is, graphs with many edges. This is in contrast to many previously studied algorithms for graph colouring problems. And this is not only for very dense graphs, but the performance of the algorithm is in fact a function that is directly related to graph density, and consistently performs better for every additional edge to a graph. This follows directly from steps \ref{indep1} and \ref{indep2} above:
+\[ h[V_2 \setminus N(Y_1)] \leftarrow h[V_2 \setminus N(Y_1)] + z^{|Y_1|} \]
+\[ l[Y_2] \leftarrow z^{|Y_2|} \]
+Recall that these lines will only be executed for \emph{independent} sets $Y_1$ and $Y_2$. As graph density increases, fewer subsets of the vertex set $V$ will be independent, and fewer of these lines will be executed, leading to the arrays $h$ and $l$ containing more zeros. This has a direct effect in reducing some additions and assignments, but more importantly has side effects in all subsequent steps, as arithmetic with zero-operands is (much) faster. The opposite is of course true for a \emph{sparse} graph, for which the algorithm is significantly slower.
+
+\subsection{Multiplication algorithms}
+%TODO: Count number of multiplications/additions/powerings
+Much of the complexity of the whole algorithm comes down to how polynomial multiplication is performed. The most common operation is to multiply two polynomials of \emph{small} degree ($\leq n$) but with \emph{large} coefficients. This is because the degree of the polynomials increase as $O(n)$ while their coefficients increase as $O(2^n)$.
+
+Trivially, a polynomial multiplication would be to expand over both operands' coefficients and cross-multiply them in a standard fashion. This is very inefficient, and many techniques have been developed to deal with this problem. In fact, the original issue has always been to multiply two large integers, but the most sophisticated results show methods that make use of polynomials for this purpose. The algorithm with the best asymptotic complexity is the Schönhage-Strassen algorithm, which is based on a Fast Fourier Transform, but it has a large overhead and becomes useful only for huge operands. The most go-to algorithm is the Toom-Cook (aka Toom-$k$) family, in which Toom-2 (aka Karatsuba) or Toom-3 are the most common.
+
+The technique used in Toom-$k$ for multiplying two large integers is to split them up in parts, introduce a polynomial representation of degree $k-1$ for these parts (the parts are coefficients), evaluate the polynomials at certain points (the choice of points is critical), perform pointwise multiplication of the evaluated polynomials, interpolate the resulting points into a resulting polynomial, and finally reconstruct the integer from the coefficients of the resulting polynomial. This technique is easily translated for polynomial multiplication as well, where the first and last steps would be skipped.
+
+For an overview and an in-depth description of these algorithms, see for example Wikipedia \cite{strass} \cite{toom-cook} and Knuth \cite[sec. 4.3.3]{knuth2}, respectively.
+
+As presented below in section~\ref{implementation}, we employ a number of external libraries. One of the main reasons for this is to make use of existing implementations of the algorithms mentioned here, and not spend time implementing these ourselves. The external libraries provide the following support:
+
+\begin{itemize}
+ \item The GMP library supports Karatsuba, Toom-3, Toom-4, Toom-6.5, Toom-8.5 and Schönhage-Strassen algorithms \cite[p. 90]{gmp}, which means all libraries used in the programs uses these algorithms \emph{at least} when multiplying integers (i.e., coefficients of polynomials).
+ \item NTL implements Karatsuba, Schönhage-Strassen and another FFT-based technique for polynomials \cite{ntl_zzx}.
+ \item The external documentation of PARI does not specify which algorithms are implemented, but Karatsuba, some version of Toom-Cook and some FFT-based algorithm seem to exist in the source code.
+\end{itemize}
+
+% I have not found any documentation specifying which algorithms are implemented in the PARI library for polynomial multiplication. From analyzing the source code, it seems as if PARI ``converts'' the polynomial to an integer and submits it to its integer multiplication function (which would be one of GMPs).
+
+\section{Implementation}\label{implementation}
+All development of the programs discussed in this report have been written in C/C++, developed in a Unix (Linux) environment with the GNU compiler collection \code{gcc} as compiling and optimizing tool. Some of the ``helper'' programs (for automating tests and similar) have been written in Java.
+
+The first step of the implementation process was to get a working version of the FZT. 
+
+\section{External libraries}
+In order to focus on the BHKK algorithm and not dwell too much on implementation-specific optimizations, and to reduce the scope of work to produce testable programs, we decided to not implement polynomial arithmetic. Instead we have employed the use of several external libraries that implement polynomial arithmetic, usually with several fast multiplication algorithms in use.
+
+\subsection{NTL}
+The Number Theoretic Library by Shoup \cite{ntl} is a full-fledged C++ code base and provides a rich, high-level interface well suited for library usage. It does lack functionality for non-trivial polynomial exponentiation, and does not implement as many multiplication algorithms as comparable libraries.
+
+NTL is advertised as ``one of the fastest implementations of polynomial arithmetics'', which is all that we are interested in. Unfortunately, the results we have produced with it are not competitive. NTL is however very easy to use, provides its own garbage collection and has a rich, high-level interface for library usage.
+
+The functions used are primarily these: 
+
+\begin{itemize}
+\item \code{ZZX.operator+=()}
+\subitem Addition and assignment for polynomials. %TODO Documentation citation
+\item \code{ZZX.operator*=()}
+\subitem Multiplication and assignment for polynomials. %TODO Doc citation
+\end{itemize}
+
+Here, released binaries compiled with NTL are called \code{bhkk-ntl-x.y.z}.
+
+\subsection{PARI}
+The PARI/GP project \cite{pari} is a computer algebra system, primarily designed as a full calculation system comparable to Maple. The back-end, PARI, is also available as a C library, providing polynomial arithmetics among other functionality.
+
+The PARI library is provided at a low level, requires the user to garbage collect (since it is written in C, after all), has a much steeper learning curve and a very detailed but hard-to-grasp documentation. PARI provides special functions for exponentiation of polynomials, but it is a bit unclear how these are implemented exactly.
+
+The functions used are primarily these: 
+
+\begin{itemize}
+\item \code{ZX\_add()}
+\subitem Addition for polynomials. %TODO: doc citation
+\item \code{ZX\_mul()}
+\subitem Multiplication for polynomials. %TODO: citation from documentation
+\item \code{gpowgs()}
+\subitem General exponentiation for PARI types. Used for polynomials.
+\end{itemize}
+
+Here, released binaries compiled with PARI are called \code{bhkk-pari-x.y.z}.
+
+\subsection{FLINT}
+The Fast Library for Number Theory, FLINT, by mainly Hart \cite{flint} was also tried out. It does not use GMP, but instead a fork of GMP called MPIR, for low-level arithmetic operations. We did not release any program compiled with FLINT, however, as our initial tests showed no improvements as compared to PARI; it was decided time was best spent on other work.
+
+\subsection{GMP}
+NTL and PARI allow for the user to configure them using the GNU Multiple Precision library by mainly Granlund \cite{gmp}, as the lowest-level interface for integral arithmetic. Authors of the libraries suggest using GMP instead of their own native low-level interfaces, as this gives better performance. GMP implements a wide range of multiplication algorithms and provides fast assembler code optimizations for various CPU types.
+
+GMP is well documented, easy-to-use, provides both C and C++ interfaces and even has a well-maintained\footnote{I got an answer the same day!} bug reporting facility. GMP provides a rich variety of configuration options, and we've tried to optimize as narrowly as possible to get maximum performance on one machine. In the implementations, we do not interface with GMP directly, as PARI and NTL hide this behind their own interfaces.
+
+
+\section{Experimental setup}
+Computer specs, graph classes, generators, automated test programs
+
+
+\chapter{Experimental results}
+Here we present graphs and stuff.
+
+\section{Set problems}
+While quite a lot of simulation was done for these programs, results were somewhat uninteresting. 
+
+\begin{tikzpicture}
+\begin{semilogyaxis}[legend pos = north west, legend style={fill = none, draw = none},
+xlabel=$n$,
+ylabel=Time (ms)]
+\addplot table[x=n,y=time] {/home/sx/xjobb/exjobb/test_results/fzt_k/fztlin_time2};
+\addplot table[x=n,y=time] {/home/sx/xjobb/exjobb/test_results/fzt_k/k_cover_time2};
+\addplot table[x=n,y=time] {/home/sx/xjobb/exjobb/test_results/fzt_k/k_partition_time2};
+\addplot table[x=n,y=time] {/home/sx/xjobb/exjobb/test_results/fzt_k/k_packing_time2};
+\legend{FZT, $k$-cover, $k$-partition, $k$-packing}
+\end{semilogyaxis}
+\end{tikzpicture}
+
+%TODO: This text sucks. I'm tired.
+
+What we can see is that there is a clear hierarchy between the problems; $k$-cover is the most time-consuming one. The ``jump'' is due to the use of polynomials instead of integers as ring elements. But from this diagram, we can not make any distinction between the asymptotical behaviour of these algorithms.
+
+\section{Computing chromatic polynomials}
+
+\subsection{Fastest implementation}
+
+\subsection{Polynomial arithmetic libraries}
+
+\subsection{Different edge densities}
+We have four different classes of graphs: linear, log-linear, quadratic, and quadratic-over-log. The four functions are $f_1(\alpha, n) = \alpha n$, $f_2(\alpha, n) = \alpha n^2$, $f_3(\alpha, n) = \alpha n \ln(n)$ and $f_4(\alpha, n) = \alpha n^2 / \ln n$. The graphs generated have $n$ nodes and $f_i$ edges.
+
+The $\alpha$ values are constants that we set to get a good spread of densities, in terms of maximum density. Linear graphs have around $20\%$, log-linear around $30\%$, quadratic around $80\%$ and quadratic-over-log around $50\%$.
+
+$\alpha_1 = 2$, $\alpha_2 = 0.4$, $\alpha_3 = 1$, $\alpha_4 = 0.8$.
+
+\begin{center}
+\begin{tabular}{rl}
+\begin{tikzpicture}
+\begin{semilogyaxis}[title={BHKK},
+legend pos=north west,baseline,trim axis right,small,
+legend style={fill = none, draw = none},
+xlabel=Number of vertices $n$,
+ylabel=Average real time (ms)]
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/alpha1};
+\addplot[red,mark=triangle*] table[x=n,y=rt] {tables/alpha2};
+\addplot[green,mark=triangle*] table[x=n,y=rt] {tables/alpha3};
+\addplot[black,mark=triangle*] table[x=n,y=rt] {tables/alpha4};
+\legend{Quadratic, Linear, Linlog, quadlog}
+\end{semilogyaxis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={BHKK},
+legend pos=north west,baseline,trim axis right,small,
+legend style={fill = none, draw = none},
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$n$,
+ylabel=$m$]
+% \addplot[blue,mark=asterisk] table[x=n,y expr= 0.4 * x^2] {tables/alpha1};
+% \addplot[red,mark=asterisk] table[x=n,y expr= 2 * x] {tables/alpha2};
+\addplot[blue,mark=asterisk] table[x=n,y expr= \thisrow{dE} * \thisrow{n} * \thisrow{n} / 100] {tables/alpha1};
+\addplot[red,mark=triangle*] table[x=n,y expr= \thisrow{dE} * \thisrow{n} / 100] {tables/alpha2};
+\addplot[green,mark=triangle*] table[x=n,y expr= \thisrow{dE} * \thisrow{n} * ln(\thisrow{n}) / 100] {tables/alpha3};
+\addplot[black,mark=triangle*] table[x=n,y expr= \thisrow{dE} * \thisrow{n} * \thisrow{n} / (100 * ln(\thisrow{n}))] {tables/alpha4};
+\legend{Quadratic, Linear, Linlog, quadlog}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{semilogyaxis}[title={HPR},
+legend pos=north west,baseline,trim axis right,small,
+legend style={fill = none, draw = none},
+xlabel=Number of vertices $n$,
+ylabel=Average real time (ms)]
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/alpha-tutte1};
+\addplot[red,mark=triangle*] table[x=n,y=rt] {tables/alpha-tutte2};
+\addplot[green,mark=triangle*] table[x=n,y=rt] {tables/alpha-tutte3};
+\addplot[black,mark=triangle*] table[x=n,y=rt] {tables/alpha-tutte4};
+\legend{Quadratic, Linear, Linlog, quadlog}
+\end{semilogyaxis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={HPR},
+legend pos=north west,baseline,trim axis right,small,
+legend style={fill = none, draw = none},
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$n$,
+ylabel=$m$]
+\addplot[blue,mark=asterisk] table[x=n,y=dE] {tables/alpha-tutte1};
+\addplot[red,mark=triangle*] table[x=n,y =dE] {tables/alpha-tutte2};
+\addplot[green,mark=triangle*] table[x=n,y =dE] {tables/alpha-tutte3};
+\addplot[black,mark=triangle*] table[x=n,y =dE] {tables/alpha-tutte4};
+\legend{Quadratic, Linear, Linlog, quadlog}
+\end{axis}
+\end{tikzpicture}
+\end{tabular}
+\end{center}
+
+\section{Chromatic polynomials for certain graphs}
+
+\subsection{Akbari's graph}
+Hillar and Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(\chi(G)) = \chi(G)!$, or in other words that there exists only one optimal colouring, unique up to interchangability of the colours. Hillar and Windfeldt makes an attempt to verify their results by determining the chromatic polynomials of two graphs known to be uniquely 3-colourable, in order to test whether $\chi_G(3) = 3!$ for them. However, they were unable to determine the chromatic polynomial of the larger graph (on 24 vertices), Akbari's graph, seen here in figure~\ref{akbaris}, using Maple, as it uses a very naive algorithm to determine chromatic polynomials. Using BHKK, we successfully determined $\chi_{Akbari}(t)$:
+\begin{equation*}
+\begin{split}
+\chi_{Akbari}(t) & =  t^{24} - 45t^{23} + 990t^{22} -14174t^{21} + 148267t^{20} - 1205738t^{19} + 7917774t^{18} \\ 
+& \quad - 43042984t^{17} + 197006250t^{16} - 767939707t^{15} + 2568812231t^{14} \\ & \quad - 7407069283t^{13} 
++ 18445193022t^{12} - 39646852659t^{11} + 73339511467t^{10} \\ & \quad - 116102230203t^9 
++ 155931129928t^8 - 175431211152t^7 + 162362866382t^6 \\ & \quad - 120414350156t^5 
++ 68794778568t^4 - 28408042814t^3 + 7537920709t^2 \\ & \quad - 963326674t
+\end{split}
+\end{equation*}
+and in particular, $\chi_{Akbari}(3) = 3!$, as expected. This took $1445$ seconds to compute, using our fastest implementation. HPR however terminated even faster, which was to be expected.
+
+\begin{center}
+\begin{figure}
+\centering
+ \begin {tikzpicture}[-latex, auto, on grid, semithick, inner sep = 1,
+b/.style ={ circle ,draw, text=white, minimum width = 6 mm, fill = black!100},
+g/.style ={ circle ,draw, text=blue, minimum width = 6 mm, fill = black!50},
+w/.style ={ circle ,draw, text=black, minimum width = 6 mm, fill = white!0}]
+\node[g] (1) at (-2,-2) {$1$};
+\node[b] (2) at (-2,3) {$2$}
+  edge [-] (1);
+\node[w] (3) at (3,3) {$3$}
+  edge [-] (2);
+\node[w] (4) at (3,-2) {$4$}
+  edge [-] (1);
+\node[g] (5) at (-1,0) {$5$};
+\node[b] (6) at (-1,1) {$6$}
+  edge [-,bend right =10] (1)
+  edge [-] (5);
+\node[w] (7) at (0,2) {$7$}
+  edge [-] (2)
+  edge [-] (6);
+\node[g] (8) at (1,2) {$8$}
+  edge [-] (7);
+\node[b] (9) at (2,1) {$9$}
+  edge [-, bend left = 10] (4)
+  edge [-] (5)
+  edge [-] (8);
+\node[g] (10) at (2,0) {$10$}
+  edge [-, bend right = 10] (3)
+  edge [-] (6);
+\node[b] (11) at (1,-1) {$11$}
+  edge [-] (4)
+  edge [-] (7)
+  edge [-] (10);
+\node[w] (12) at (0,-1) {$12$}
+  edge [-] (1)
+  edge [-] (5)
+  edge [-] (8)
+  edge [-] (11);
+\node[b] (13) at (10,-2) {$13$};
+\node[w] (14) at (5,-2) {$14$}
+  edge [-, bend left = 80] (2)
+  edge [-] (10)
+  edge [-] (13);
+\node[g] (15) at (5,3) {$15$}
+  edge [-, bend right = 35] (7)
+  edge [-] (14);
+\node[g] (16) at (10,3) {$16$}
+  edge [-] (13);
+\node[w] (17) at (8,-1) {$17$};
+\node[g] (18) at (7,-1) {$18$}
+  edge [-, bend left = 25] (3)
+  edge [-, bend right = 10] (13)
+  edge [-] (17);
+\node[b] (19) at (6,0) {$19$}
+  edge [-] (14)
+  edge [-] (18);
+\node[w] (20) at (6,1) {$20$}
+  edge [-] (19);
+\node[b] (21) at (7,2) {$21$}
+  edge [-, bend left=10] (16)
+  edge [-] (17)
+  edge [-] (20);
+\node[b] (22) at (8,2) {$22$}
+  edge [-, bend right = 45] (10)
+  edge [-, bend right = 20] (15)
+  edge [-] (18)
+  edge [-] (21);
+\node[w] (23) at (9,1) {$23$}
+  edge [-] (16)
+  edge [-] (19)
+  edge [-] (22);
+\node[g] (24) at (9,0) {$24$}
+  edge [-] (13)
+  edge [-] (17)
+  edge [-] (20)
+  edge [-] (23);
+\end{tikzpicture}
+ \caption{Akbari's graph, coloured in its unique 3-colouring with white, gray and black as colours. Figure copied from figure~2 in \cite{hillar_windfeldt}.}
+ \label{akbaris}
+\end{figure}
+\end{center}
+
+\subsection{Queen graph}
+
+The $n \times n$ \emph{Queen graph} is a graph laid out like a chess board with $n$ squares per side. Each square is a vertex and it has edges to all squares in its column, in its row and in its diagonals. In other words, to each square to which a queen could move, if placed on said square. Here we provide the chromatic polynomials of the $5 \times 5$ and $6 \times 6$ Queen graphs $Q_5$ and $Q_6$, on 25 and 36 vertices, respectively.
+
+\begin{equation*}
+\begin{split}
+\chi_{Q_5}(t) & = t^{25} -160t^{24} + 12400t^{23} -619000t^{22} + 22326412t^{21} -618664244t^{20} \\ & \quad 
++ 13671395276t^{19} -246865059671t^{18} + 3702615662191t^{17} \\ & \quad
+-46639724773840t^{16} + 496954920474842t^{15}  -4497756322484864t^{14} \\ & \quad 
++ 34633593670260330t^{13} -226742890673713726t^{12} \\ & \quad 
++ 1258486280066672806t^{11} -5890734492089539317t^{10} \\ & \quad 
++ 23071456910844580538t^9 -74774310771536397886t^8 \\ & \quad  
++ 197510077615138465516t^7 -416375608854898733286t^6  \\ & \quad 
++ 680208675481930270860t^5 -824635131668099993614t^4 \\ & \quad 
++ 692768396747228503860t^3 -356298290543726707632t^2  \\ & \quad 
++ 83353136564448062208t
+\end{split}
+\end{equation*}
+
+\[
+ \chi_{Q_6}(t) = 
+\]
+
+\begin{table}[H]\centering
+\begin{tabular}{|c|c|c|c|} \hline
+  Polynomial & Algorithm & Real time (s) & Peak resident set size (kB) \\ \hline
+  $\chi_{Q_5}$ & BHKK & 1453 & 199216 \\ \hline
+  $\chi_{Q_5}$ & HPR & 2727 & 41094832 \\ \hline
+  $\chi_{Q_6}$ & BHKK & $\sim 10^{7}$ & - \\ \hline
+  $\chi_{Q_6}$ & HPR & - & - \\ \hline
+\end{tabular}
+\caption{Time and memory measurements on computing chromatic polynomials of queen graphs.}
+\end{table}
+
+\chapter{Conclusions}
+We won vs HPR. Parallelization is key.
+
+
+
+\makebibliography{bhkk_paper}
+
+
+\begin{appendices}
+ \chapter{Code examples}
+ Here is presented selected pieces of code from the implementations presented in this report.
+ 
+ \section{The most executed function}
+ The most important function in the implementation is the \code{utils::parallel} function. It is the one that is executed on each parallel thread. This is the C++ code for the function, with library-specific code, developer-only comments and debug aid removed.
+ \VerbatimInput{small_space_function.cc}
+ 
+ \chapter{Additional figures}
+ 
+ Some diagrams that aren't very important, but still deserve mention.
+ 
+\end{appendices}
+
+
+\end{document}
