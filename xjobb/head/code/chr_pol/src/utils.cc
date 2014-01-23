@@ -207,6 +207,10 @@ std::string* utils::count_colourings_small_space(
 	
 }
 
+/*
+ * Executes the BHKK algorithm for a range of subsets starting from start and
+ * ending with end, proceeding in in-order.
+ */
 void utils::parallel(
 		rval_t* r,
 		const set_t& start,
