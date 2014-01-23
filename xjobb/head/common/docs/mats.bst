@@ -77,7 +77,7 @@ STRINGS { s t}
 FUNCTION {output.nonnull}
 { 's :=
   output.state mid.sentence =
-    { ", " * write$ }
+    { " " * write$ }
     { output.state after.block =
         { add.period$ write$
           newline$
@@ -396,7 +396,7 @@ FUNCTION {format.names}
   numnames 'namesleft :=
     { namesleft #0 > }
     { s nameptr
-      "{vv~}{ll}{, jj}{, f{.}.}"
+      "{vv~}{ll}{, jj}{, f{ }}"
       format.name$
       bibinfo bibinfo.check
       't :=
@@ -470,8 +470,28 @@ FUNCTION {format.names.ed}
   while$
   } if$
 }
+FUNCTION {add.authsep}
+{ duplicate$ empty$
+    'skip$
+    { "." * add.blank }
+  if$
+}
+FUNCTION {add.newline}
+{ duplicate$ empty$
+    'skip$
+    { "\newline" * add.blank }
+  if$
+}
+FUNCTION {add.comma}
+{ duplicate$ empty$
+    'skip$
+    { "," * add.blank }
+  if$
+}
 FUNCTION {format.authors}
 { author "author" format.names
+  add.authsep
+  add.newline
 }
 FUNCTION {get.bbl.editor}
 { editor num.names$ #1 > 'bbl.editors 'bbl.editor if$ }
@@ -486,6 +506,7 @@ FUNCTION {format.editors}
     }
   if$
 }
+
 FUNCTION {format.isbn}
 { isbn "isbn" bibinfo.check
   duplicate$ empty$ 'skip$
@@ -493,6 +514,7 @@ FUNCTION {format.isbn}
       "ISBN " swap$ *
     }
   if$
+  add.comma
 }
 
 FUNCTION {format.issn}
@@ -502,6 +524,7 @@ FUNCTION {format.issn}
       "ISSN " swap$ *
     }
   if$
+  add.comma
 }
 
 FUNCTION {format.doi}
@@ -540,7 +563,7 @@ FUNCTION {format.title}
   duplicate$ empty$ 'skip$
     {
       "\enquote{" swap$ *
-      "}, " *
+      "}\newline " *
     }
   if$
 }
@@ -809,6 +832,7 @@ FUNCTION {format.vol.num.pages}
     { format.journal.pages }
     { format.journal.eid }
   if$
+  add.comma
 }
 
 FUNCTION {format.chapter.pages}
@@ -997,7 +1021,7 @@ FUNCTION {format.org.or.pub}
         'skip$
         { t empty$ address empty$ and
             'skip$
-            { ", " swap$ * * }
+            { ", " * }  %{ ", " swap$ * * }
           if$
           year "year" bibinfo.check
           *
@@ -1009,6 +1033,7 @@ FUNCTION {format.org.or.pub}
 }
 FUNCTION {format.publisher.address}
 { publisher "publisher" bibinfo.warn format.org.or.pub
+  add.comma
 }
 
 FUNCTION {format.organization.address}
@@ -1200,6 +1225,7 @@ FUNCTION {manual}
     }
     {
       organization "organization" bibinfo.check output
+      add.comma
       address "address" bibinfo.check output
     }
   if$

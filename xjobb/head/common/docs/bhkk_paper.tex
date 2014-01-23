@@ -559,6 +559,50 @@ ylabel=Average peak resident set size (kB)]
 \end{center}
 These results are somewhat in contrast to those presented in \cite{haggard}. The data here suggests that the ''weak spot'' in terms of density would be around $dE = 50$, whereas \cite{haggard} suggests ''weak spot'' around $dE = 75$. It's made clear however, that BHKK shows better asymptotic behaviour, and that the space improvements are significant, also in practice. Note that the first test (upper graphs) were performed on a sparse graph, meaning BHKK is not working under optimal conditions.
 
+
+\subsubsection{Different edge densities}
+We have four different classes of graphs: linear, log-linear, quadratic, and quadratic-over-log. The four functions are $f_1(\alpha, n) = \alpha n$, $f_2(\alpha, n) = \alpha n^2$, $f_3(\alpha, n) = \alpha n \ln(n)$ and $f_4(\alpha, n) = \alpha n^2 / \ln n$. The graphs generated have $n$ nodes and $f_i$ edges.
+
+The $\alpha$ values are constants that we set to get a good spread of densities, in terms of maximum density. Linear graphs have around $20\%$, log-linear around $30\%$, quadratic around $80\%$ and quadratic-over-log around $50\%$.
+
+$\alpha_1 = 2$, $\alpha_2 = 0.4$, $\alpha_3 = 1$, $\alpha_4 = 0.8$.
+
+\begin{center}
+\begin{tabular}{rl}
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs},
+legend pos=north west,baseline,trim axis right,small,
+xlabel=Number of vertices $n$,
+ylabel=Average real time (ms)]
+\addplot[blue,mark=asterisk] table[x=n,y=rt] {tables/alpha1};
+\addplot[red,mark=triangle*] table[x=n,y=rt] {tables/alpha2};
+\addplot[green,mark=triangle*] table[x=n,y=rt] {tables/alpha3};
+\addplot[black,mark=triangle*] table[x=n,y=rt] {tables/alpha4};
+\legend{Quadratic, Linear, Linlog, quadlog}
+\end{axis}
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs},
+legend pos=north west,baseline,trim axis right,small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=$n$,
+ylabel=$m$]
+% \addplot[blue,mark=asterisk] table[x=n,y expr= 0.4 * x^2] {tables/alpha1};
+% \addplot[red,mark=asterisk] table[x=n,y expr= 2 * x] {tables/alpha2};
+\addplot[blue,mark=asterisk] table[x=n,y expr= \thisrow{dE} * \thisrow{n} * \thisrow{n} / 100] {tables/alpha1};
+\addplot[red,mark=triangle*] table[x=n,y expr= \thisrow{dE} * \thisrow{n} / 100] {tables/alpha2};
+\addplot[green,mark=triangle*] table[x=n,y expr= \thisrow{dE} * \thisrow{n} * ln(\thisrow{n}) / 100] {tables/alpha3};
+\addplot[black,mark=triangle*] table[x=n,y expr= \thisrow{dE} * \thisrow{n} * \thisrow{n} / (100 * ln(\thisrow{n}))] {tables/alpha4};
+\legend{Quadratic, Linear, Linlog, quadlog}
+\end{axis}
+\end{tikzpicture}
+\end{tabular}
+\end{center}
+
+
+
+
 \begin{table}[H]\centering
 \begin{tabular}{ccccc} \hline
   Size 			& Min. time (s)	& Max. time (s)	& Min. mem (kB)	& Max. mem (kB) \\ \hline
@@ -788,41 +832,5 @@ The $n \times n$ \emph{Queen graph} is a graph laid out like a chess board with 
 \bibliographystyle{mats}
 
 \bibliography{bhkk_paper}
-
-% \begin{thebibliography}{9}
-% \bibitem{birkhoff} G.D. Birkhoff, ''A determinant formula for the number of ways of coloring a map'', \textit{Ann. Math.} \textbf{14}, (1912), 42-46.
-% 
-% \bibitem{cov_pack} A. Björklund, T. Husfeldt, P. Kaski, M. Koivisto, ''Covering and packing in linear space'', \textit{Inf. Process. Lett.} \textbf{111} (2011), 1033-1036.%\url{http://fileadmin.cs.lth.se/cs/Personal/Thore_Husfeldt/papers/lsfzt.pdf}
-% 
-% \bibitem{chaitin} G.J. Chaitin ''Register allocation \& spilling via graph colouring'', \textit{Proc. 1982 SIGPLAN Symposium on Compiler Construction}, (1982), 98–105.
-% 
-% \bibitem{haggard} G. Haggard, D. Pearce, G. Royle, ''Computing Tutte Polynomials'', \textit{ACM Transactions on Mathematical Software} \textbf{37} (2010), art 24.
-% 
-% \bibitem{hillar_windfeldt} C.J. Hillar, T. Windfeldt, ''Algebraic characterization of uniquely vertex colorable graphs'', \textit{J. Combin. Theory}, \textbf{98} (2008), 400-414
-% 
-% \bibitem{marx} D. Marx, ''Graph colouring problems and their applications in scheduling'', \textit{Periodica Polytechnica, Electrical Engineering} \textbf{48} (1–2) (2004), 11–16.
-% 
-% \bibitem{whitney} H. Whitney, ''The coloring of graphs'', \textit{Ann. Math.} \textbf{33}, (1932), 688-718 .
-% 
-% \bibitem{gmp} The GNU Multiple Precision library, version \code{5.1.2} \\ \url{http://gmplib.org/}
-% 
-% %\bibitem{proc} \url{http://man7.org/linux/man-pages/man5/proc.5.html}
-% 
-% \bibitem{time} GNU time, version \code{1.7} \\ \url{http://man7.org/linux/man-pages/man1/time.1.html}
-% 
-% \bibitem{ntl} V. Shoup, Number Theoretic Library, version \code{6.0.0} \\ \url{http://www.shoup.net/ntl/index.html}
-% 
-% \bibitem{ntl_zzx} V. Shoup, Number Theoretic Library, version \code{6.0.0}, Source documentation, \url{http://www.shoup.net/ntl/doc/ZZX.txt}
-% 
-% \bibitem{pari} PARI/GP, version {\tt 2.5.5}, Bordeaux, 2013 \\ \url{http://pari.math.u-bordeaux.fr/}.
-% 
-% \bibitem{toom-cook} Wikipedia, the Free Encyclopedia, Toom-Cook multiplication \\ \url{https://en.wikipedia.org/wiki/Toom\%E2\%80\%93Cook_multiplication}
-% 
-% \bibitem{strass} Wikipedia, the Free Encyclopedia, Shönhage-Strassen algorithm \\ \url{https://en.wikipedia.org/wiki/Sch\%C3\%B6nhage\%E2\%80\%93Strassen_algorithm}
-% 
-% % Definitions of sparse and dense: Coleman, Thomas F.; Moré, Jorge J. (1983), "Estimation of sparse Jacobian matrices and graph coloring Problems", SIAM Journal on Numerical Analysis 20 (1): 187–209, doi:10.1137/0720013. https://en.wikipedia.org/wiki/Dense_graph#CITEREFColemanMor.C3.A91983
-% % \bibitem{signed_petersen} \url{http://arxiv.org/pdf/1311.1760.pdf}
-% 
-% \end{thebibliography}
 
 \end{document}
