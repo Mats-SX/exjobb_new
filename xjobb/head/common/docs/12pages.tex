@@ -48,7 +48,9 @@ In particular, the \emph{chromatic number} is the smallest $c$ for which $\chi_G
 
 \subsection{History}
 The chromatic polynomial was specified in 1912 by Birkhoff \cite{birkhoff}, who defined it for planar graphs with the intent on proving the Four Colour Theorem. Whitney extended its definition to general graphs in 1932 \cite{whitney}, and Tutte incorporated it into what is now known as the Tutte polynomial.
-In 2010, Haggard, Pearce and Royle \cite{haggard} published a program (referred to here as \textbf{HPR}) to compute the Tutte polynomial for graphs using a deletion-contraction algorithm. HPR exploits the isomorphism of induced subgraphs to obtain good performance, and can easily handle many instances of non-trivial sizes. Using the fact that the Tutte polynomial encodes the chromatic polynomial (as well as other graph invariants), HPR is also designed to output $\chi_G(t)$. 
+In 2010, Haggard, Pearce and Royle \cite{haggard} published a program (referred to here as \textbf{HPR}) to compute the Tutte polynomial for graphs using a deletion-contraction algorithm.
+The basic idea behind HPR goes back to Zykov~\cite{aazykov}, using cached subgraphs and isomorphism rejection to obtain good performance, and it can easily handle many instances of non-trivial sizes. 
+Using the fact that the Tutte polynomial encodes the chromatic polynomial (as well as other graph invariants), HPR is also designed to output $\chi_G(t)$. 
 In 2011, Björklund, Husfeldt, Kaski and Koivisto \cite{cov_pack} presented an algorithm to compute the chromatic polynomial in time $O^*(2^n)$ and space $O^*(1.2916^n)$, referred to here as the \textbf{BHKK} algorithm.
 
 \subsection{Results}
@@ -375,8 +377,12 @@ These results are somewhat in contrast to those presented in \cite{haggard}. The
 \section{Some chromatic polynomials}
 Here we provide the actual chromatic polynomials of a few famous graphs, together with data on how expensive these polynomials were to compute.
 
+% (En sak: Skriv något i stil med “The basic idea [of HPR] idea goes back to the deletion-contraction algorithm of Zykov, with cached subgraphs and isomorphism rejection.” 
+
+% Senare, när du nämnar Maple, “which is a naïve implementation of Zykov’s deletion-contraction recurrence”). Jag tror Skiena har beskrivit Maple-implementationen någonstans i en tidigare bok. Men ta med referens til Zykov.
+
 \subsection{Akbari's graph}
-Hillar and Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(\chi(G)) = \chi(G)!$, or in other words that there exists only one optimal colouring, unique up to interchangability of the colours. Hillar and Windfeldt makes an attempt to verify their results by determining the chromatic polynomials of two graphs known to be uniquely 3-colourable, in order to test whether $\chi_G(3) = 3!$ for them. However, they were unable to determine the chromatic polynomial of the larger graph (on 24 vertices), Akbari's graph, seen here in figure~\ref{akbaris}, using Maple, as it uses a very naive algorithm to determine chromatic polynomials. Using BHKK, we successfully determined $\chi_{Akbari}(t)$:
+Hillar and Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(\chi(G)) = \chi(G)!$, or in other words that there exists only one optimal colouring, unique up to interchangability of the colours. Hillar and Windfeldt makes an attempt to verify their results by determining the chromatic polynomials of two graphs known to be uniquely 3-colourable, in order to test whether $\chi_G(3) = 3!$ for them. However, they were unable to determine the chromatic polynomial of the larger graph (on 24 vertices), Akbari's graph, seen here in figure~\ref{akbaris}, using Maple, as it uses a naive implementation of Zykov's~\cite{aazykov} deletion-contraction recurrence. Using BHKK, we successfully determined $\chi_{Akbari}(t)$:
 \begin{equation*}
 \begin{split}
 \chi_{Akbari}(t) & =  t^{24} - 45t^{23} + 990t^{22} -14174t^{21} + 148267t^{20} - 1205738t^{19} \\ & \quad
@@ -466,6 +472,9 @@ w/.style ={ circle ,draw, text=black, minimum width = 6 mm, fill = white!0}]
   edge [-] (17)
   edge [-] (20)
   edge [-] (23);
+  
+  \pgfresetboundingbox
+  \draw (-2,-3)  (10,3);
 \end{tikzpicture}
  \caption{Akbari's graph, coloured in its unique 3-colouring with white, gray and black as colours. Figure copied from figure~2 in \cite{hillar_windfeldt}.}
  \label{akbaris}
@@ -499,7 +508,7 @@ The $n \times n$ \emph{Queen graph} is a graph laid out like a chess board with 
 \caption{Time and memory measurements on computing the chromatic polynomial of $Q_5$.}
 \end{table}
 
-\bibliographystyle{mats}
+\bibliographystyle{12page}
 
 \bibliography{bhkk_paper}
 
