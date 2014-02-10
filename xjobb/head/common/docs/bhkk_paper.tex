@@ -281,10 +281,8 @@ Compiler & GCC 4.7.2 (g++) \\
 \end{center}
 
 For all time and memory measurements, the GNU \code{time} 1.7 program is used (see the Linux man pages \cite{time}). The user time, elapsed time (real time)
-\footnote{Do note that for single-threaded applications, user time and real time are (more or less) the same. No graphs are therefore provided for the real time measurements. The ``less'' refers to the fact that there are some units of time scheduled as system time, but these values are too small to be significant in these experiments.}
-and peak resident set size are the data points recovered as measurements. These measurements are taken by running the specified program on a number
-\footnote{Usually, this is 50 or 100. Smaller for larger graphs because of time restrictions.} 
-of graphs of equal size and the average values are the ones presented.
+\footnote{When running single-thread versions, we actually measure ``user time'', which is nearly equal to real time. ``Nearly'' refers to the fact that there are some units of time scheduled as system time, but these values are too small to be significant in these experiments.}
+and peak resident set size are the data points recovered as measurements. These measurements are taken by running the specified program on a number of graphs of equal order and size and the average values are the ones presented. For most tests, we average over 100 graphs, but for larger-order graphs we average over 50 to reduce the time needed for the simulation to finish.
 
 \subsection{\code{bhkk-pari-0.3}}
 The most powerful implementation is \code{bhkk-pari-0.3}. It implements these optimizations: $q = \{0, 1\}$, $w_{min}(G)$, parallelization 2, degree pruning. We show here its time and memory consumption in relation to both $n$ and $dE$.
