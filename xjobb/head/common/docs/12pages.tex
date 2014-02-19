@@ -92,7 +92,7 @@ The number $\omega_{min}(G)$ is the lower bound of $\omega(G)$, and its value is
 \omega_{min}(G) = 
 \begin{cases}
 	  n - \binom{n}{2} + m & \text{if } m \geq \binom{n}{2} - \lfloor n/2 \rfloor \\
-	  \lceil n / 2 \rceil - a & \text{if }  \lfloor n / 2 \rfloor \cdot \lceil n / 2 \rceil < m = \binom{n}{2} - a \lfloor n/2 \rfloor, a \in \mathbb{N}_+ \\
+	  \lceil n / 2 \rceil - a & \text{if }  \lfloor n / 2 \rfloor \cdot \lceil n / 2 \rceil < m < \binom{n}{2} - a \lfloor n/2 \rfloor, a \in \mathbb{N}_+, a \text{ maximal} \\
 	  2 & \text{if } 0 < m \leq \lfloor n / 2 \rfloor \cdot \lceil n / 2 \rceil \\
 	  1 & \text{if } m = 0 \\
 \end{cases}
@@ -382,7 +382,7 @@ Here we provide the actual chromatic polynomials of a few famous graphs, togethe
 % Senare, när du nämnar Maple, “which is a naïve implementation of Zykov’s deletion-contraction recurrence”). Jag tror Skiena har beskrivit Maple-implementationen någonstans i en tidigare bok. Men ta med referens til Zykov.
 
 \subsection{Akbari's graph}
-Hillar and Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(\chi(G)) = \chi(G)!$, or in other words that there exists only one optimal colouring, unique up to interchangability of the colours. Hillar and Windfeldt makes an attempt to verify their results by determining the chromatic polynomials of two graphs known to be uniquely 3-colourable, in order to test whether $\chi_G(3) = 3!$ for them. However, they were unable to determine the chromatic polynomial of the larger graph (on 24 vertices), Akbari's graph, seen here in figure~\ref{akbaris}, using Maple, as it uses a naive implementation of Zykov's~\cite{aazykov} deletion-contraction recurrence. Using BHKK, we successfully determined $\chi_{Akbari}(t)$:
+Hillar and Windfeldt discussed characterizations of \emph{uniquely} colourable graphs in \cite{hillar_windfeldt}. That is, a graph $G$ with $\chi_G(\chi(G)) = \chi(G)!$, or in other words that there exists only one optimal colouring, unique up to interchangability of the colours. Hillar and Windfeldt makes an attempt to verify their results by determining the chromatic polynomials of two graphs known to be uniquely 3-colourable, in order to test whether $\chi_G(3) = 3!$ for them. However, they were unable to determine the chromatic polynomial of the larger graph (on 24 vertices), Akbari's graph, seen here in figure~\ref{akbaris}, using Maple, as Maple uses a naive implementation of Zykov's~\cite{aazykov} deletion-contraction recurrence. Using BHKK, we successfully determined $\chi_{Akbari}(t)$:
 \begin{equation*}
 \begin{split}
 \chi_{Akbari}(t) & =  t^{24} - 45t^{23} + 990t^{22} -14174t^{21} + 148267t^{20} - 1205738t^{19} \\ & \quad
