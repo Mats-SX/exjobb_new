@@ -1,0 +1,58 @@
+\documentclass[a4paper]{article}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\restylefloat{table}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.3}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{float}
+\restylefloat{table}
+\usepackage{multicol}
+
+\begin{document}
+ \begin{figure}[t]
+ \centering
+ \begin{multicols}{2}
+ \begin {tikzpicture}[-latex ,auto ,on grid ,semithick , inner sep = 2,
+a/.style ={ circle, draw, text=white, minimum width = 3 mm, fill = black },
+b/.style ={ circle, draw, text=black, minimum width = 3 mm, fill = black!66 },
+c/.style ={ circle, draw, text=black, minimum width = 3 mm, fill = black!33 },
+d/.style ={ circle, draw, text=black, minimum width = 3 mm, fill = black!0 }]
+\node[a] (1) at (-3,-3) {$1$};
+\node[b] (2) at (-2,-1) {$2$}
+  edge [-] (1);
+\node[c] (3) at (-1,-2) {$3$}
+  edge [-] (1)
+  edge [-] (2);
+\node[a] (4) at (0,0) {$4$}
+  edge [-] (2)
+  edge [-] (3);
+\node[c] (5) at (1,-2) {$5$}
+  edge [-] (4);
+\node[b] (6) at (2,-1) {$6$}
+  edge [-] (4)
+  edge [-] (5);
+\node[d] (7) at (3,-3) {$7$}
+  edge [-] (1)
+  edge [-] (5)
+  edge [-] (6);
+\end{tikzpicture}
+
+\columnbreak
+
+\begin{tabular}{ll}
+$\chi_{MS}(t) = $ & $t^7 - 11t^6 + 51t^5 $ \\
+& $- 129t^4 + 188t^3$ \\
+& $- 148t^2 + 48t $ \\
+& \\
+$\chi_{MS}(4) = $ & $ 384 $ \\
+\end{tabular}
+
+\end{multicols}
+  \caption{To the left, the Moser Spindle graph, $MS$, on $n = 7$ vertices and $m = 11$ edges, coloured in four different gray scales. To the right, its chromatic polynomial $\chi_{MS}(t)$.}
+  \label{moser}
+\end{figure}
+\end{document}

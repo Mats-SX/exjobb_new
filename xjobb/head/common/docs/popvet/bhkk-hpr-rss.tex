@@ -1,0 +1,20 @@
+\documentclass[tikz, convert={outfile=\jobname.svg}]{standalone}
+\usepackage{multicol}
+\usepackage{pgfplots}
+\usetikzlibrary{positioning}
+\pgfplotsset{compat=1.3}
+
+\begin{document}
+\begin{tikzpicture}
+\begin{semilogyaxis}[title={Random graphs, $dE = 40$},
+legend pos = north west, legend style={fill = none, draw = none},
+small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=Graph order $n$,
+ylabel=Average peak resident set size (kB)]
+\addplot[blue,mark=asterisk] table[x=n,y=rss] {../tables/hpr_1};
+\addplot[red,mark=triangle*] table[x=n,y=rss] {../../output/javatests/comp_tutte1};
+\legend{HPR, BHKK}
+\end{semilogyaxis}
+\end{tikzpicture}
+\end{document}

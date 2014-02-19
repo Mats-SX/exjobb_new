@@ -1,0 +1,24 @@
+\documentclass[tikz]{standalone}
+\usepackage{multicol}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.3}
+\pgfplotsset{major grid style={color=black!50, thick}}
+\pgfplotsset{every axis legend/.append style={fill=none, draw=none}}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\newcommand{\code}{\texttt}
+
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[title={Random graphs, $dE = 75$},
+legend pos=north west,baseline,trim axis right,small,
+yticklabel pos=right, ylabel style={align=right},
+xlabel=Graph order $n$,
+xtick={5,8,...,23},
+ylabel=Average peak resident set size (kB)]
+\addplot[blue,mark=asterisk] table[x=n,y=rss] {../tables/bhkk-pari-0.1_1};
+\addplot[red,mark=triangle] table[x=n,y=rss] {../tables/bhkk-pari-0.3_2};
+\legend{\code{0.1}, \code{0.3}}
+\end{axis}
+\end{tikzpicture}
+\end{document}
