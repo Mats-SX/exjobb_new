@@ -1127,7 +1127,7 @@ In the first chapter, we presented a summary of the main results that were gathe
 
 Our most important result is of course that which proves the BHKK algorithm outscales the HPR algorithm as graph order increases. But in general, the window where the BHKK algorithm is better than HPR and still not taking forever to terminate is quite small. We were also very generous when deciding the size of HPR's cache, basically because we wished to show that BHKK would still scale better. While no complete tests were performed to back this up, it should be fairly safe to claim that the order bound of 21 could be lowered, if we were to decrease the cache size of HPR.
 
-The size of the graph was of course proven to be very significant for HPR performance, and only somewhat significant for BHKK (relatively speaking). In inprecise terms, we would use this recommendation sheet when deciding on which of the two should be chosen to compute the chromatic polynomial:
+The size of the graph was of course proven to be very significant for HPR performance, and only somewhat significant for BHKK (relatively speaking). In inprecise terms, we would use this recommendation chart when deciding on which of the two should be chosen to compute the chromatic polynomial:
 
 \begin{center}
 \begin {tikzpicture}[auto, semithick, inner sep = 3, align=center,
@@ -1156,9 +1156,9 @@ post/.style={<-, thick, >=triangle 45}]
 \end{center}
 
 \section{Open questions}
-There were mainly two questions that we felt should have been answered, but never could be. The first concerns the full utilization of the BHKK algorithm's parallelization capabilities; how fast can we possibly run it, using a network of exponentially many CPUs? We investigated the issue of applying to LUNARC, which is a computing network in Lund for conducting large-scale computations, but unfortunately nothing ever happened with them. Since we were able to speed up the computations by $600\%$ using only 12 CPUs, the thought of speed-up using several hundreds is tickling.
+There were mainly two questions that we felt should have been answered, but never could be. The first concerns the full utilization of the BHKK algorithm's parallelization capabilities; how fast can we possibly run it, using a network of exponentially many CPUs? We investigated the issue of applying to LUNARC, which is a computing network in Lund for conducting large-scale computations, but unfortunately nothing ever happened with them. Since we were able to speed up the computations by $600\%$ using only twelve CPUs, the thought of speed-up using several hundreds is tickling.
 
-The second question is more implementation-oriented, but also concerns parallelization. As we mention in several places in this report, we select a range of subsets arbitrarily to assign to the virtual threads which then process the algorithm. This range selection is done in the first way we thought of: inorder. The benefit is the ease in which integers encode subsets, and how we are able to simple increment the integers to get to next subset, but there are no guarantees on how spread out the \emph{independent} subsets will be. Indeed, there is good reason to assume this is not an optimal scheme, as low-degree vertices are more likely to be in independent subsets than high-degree vertices, and we don't really spread the vertices. A random distribution of subsets might do better on average. It might even be worthwhile to invest in a more sophisticated algorithm for selecting subset ranges.
+The second question is more implementation-oriented, but also concerns parallelization. As we mention in several places in this report, we select a range of subsets arbitrarily to assign to the virtual threads which then process the algorithm. This range selection is done in the first way we thought of: inorder. The benefit is the ease in which integers encode subsets, and how we are able to simply increment the integers to get to next subset, but there are no guarantees on how spread out the \emph{independent} subsets will be. Indeed, there is good reason to assume this is not an optimal scheme, as low-degree vertices are more likely to be in independent subsets than high-degree vertices, and we don't really spread the vertices. A random distribution of subsets might do better on average. It might even be worthwhile to invest in a more sophisticated algorithm for selecting subset ranges.
 
 \makebibliography{bhkk_paper}
 
@@ -1280,7 +1280,7 @@ ylabel=Average peak resident set size (kB)]
 
  
  \chapter{Seminar paper}
- A short version of the problem statement and results of this Master's Thesis work resulted in a 12-page paper which was handed in to the SEA seminar in Copenhagen. We attach that paper as an appendix to this report for completeness, even though the reader will find much redundancy between it and what has been stated and shown above.
+ A short version of the problem statement and results of this Master's Thesis work resulted in a 12-page paper which was handed in to the SEA seminar in Copenhagen. We attach that paper as an appendix to this report for completeness, even though the reader will find much redundancy between it and what has been stated and shown above. (The format and page numbering is independent in this document.)
  
  \includepdf[pages={-}]{12pages.pdf}
  
