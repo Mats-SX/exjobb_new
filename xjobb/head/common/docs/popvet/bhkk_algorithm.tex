@@ -1,0 +1,36 @@
+\documentclass[a4paper]{article}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\restylefloat{table}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.3}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{float}
+\restylefloat{table}
+\usepackage{enumerate}
+
+\begin{document}
+ \begin{enumerate}[{Step} A.]
+\item \label{q} For $q = 0, 1, \ldots, n$, do
+\begin{enumerate}[1.]
+  \item Partition $V$ into $V_1$ and $V_2$ of sizes $n_1$ and $n_2$.
+  \item \label{step1} For each $X_1 \subseteq V_1$, do
+  \begin{enumerate}[a)]
+  \item \label{indep1} For each independent $Y_1 \subseteq X_1$, do
+\[ h[V_2 \setminus N(Y_1)] \leftarrow h[V_2 \setminus N(Y_1)] + z^{|Y_1|} \]
+  \item \label{indep2} For each independent $Y_2 \subseteq V_2$, do
+\[ l[Y_2] \leftarrow z^{|Y_2|} \]
+  \item \label{multi} $h \leftarrow (h\zeta')\cdot l$
+  \item $h \leftarrow h\zeta$
+  \item \label{rstep}For each $X_2 \subseteq V_2$, do
+\[ r \leftarrow r + (-1)^{n - |X_1| - |X_2|}\cdot h[X_2]^q \]
+  \end{enumerate}
+  \item Return coefficient $c_n$ of $z^n$ in $r$.
+\end{enumerate}
+\item Construct interpolating polynomial $\chi_G(t)$ on points $(q, c_{nq})$.
+\item Return $\chi_G(t)$.
+\end{enumerate}
+\end{document}

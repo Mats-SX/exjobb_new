@@ -9,7 +9,7 @@
 \begin{tikzpicture}
 \begin{semilogyaxis}[title={Random graphs, $dE = 40$},
 legend pos=north west,baseline,trim axis left,small,
-xlabel=Number of vertices $n$,
+xlabel=Graph order $n$,
 ylabel=Average real time (ms)]
 \addplot[blue,mark=asterisk] table[x=n,y=rt] {../tables/hpr_1};
 \addplot[red,mark=triangle*] table[x=n,y=rt] {../../output/javatests/comp_tutte1};
