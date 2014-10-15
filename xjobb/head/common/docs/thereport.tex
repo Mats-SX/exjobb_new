@@ -45,7 +45,7 @@ To Sasha.
 }
 
 \theabstract{
-The \emph{chromatic polynomial} $\chi_G(t)$ of a graph $G$ on $n$ vertices is a univariate polynomial of degree $n$, passing through the points $(q, P(G,q))$ where $P(G,q)$ is the number of $q$-colourings of $G$. In this paper, we present an implementation of an algorithm by Björklund, Husfeldt, Kaski and Koivisto that computes $\chi_G(t)$ in time $O^*(2^n)$ and space $O^*(1.2916^n)$. We compare the performance of two different core libraries to eachother and show our performance against an implementation done by Haggard, Pearce and Royle from 2010. 
+The \emph{chromatic polynomial} $\chi_G(t)$ of a graph $G$ on $n$ vertices is a univariate polynomial of degree $n$, passing through the points $(q, P(G,q))$ where $P(G,q)$ is the number of $q$-colourings of $G$. In this paper, we present an implementation of an algorithm by Björklund, Husfeldt, Kaski and Koivisto that computes $\chi_G(t)$ in time $O^*(2^n)$ and space $O^*(1.2916^n)$. We compare the performance of two different core libraries to each other and show our performance against an implementation done by Haggard, Pearce and Royle from 2010. 
 We also present the chromatic polynomials for a small Queen graph and a certain graph specified by Hillar and Windfeldt.
 }
 
@@ -61,7 +61,7 @@ In this report, we will present experimental results from simulations and tests 
 We will begin with a theoretical introduction into the area of graph theory, present some previous scientific results, continue with the problem statement that has guided our work during this Master's Thesis, and then shortly mention some of our main results. In the following chapters, we will describe the working process in a more detailed manner, present reflections and in-depth results from the experiments that we have carried through. In the appendix we present selected parts of the code base which make up our implementations, and the chromatic polynomials of a few mentioned graphs.
 
 \section{Preliminaries}
-Here we present all necessary definitions and theoretical notation that will be used in this report. In the case of a ill-defined variable used in the following, we refer the reader to this section.
+Here we present all necessary definitions and theoretical notation that will be used in this report. In the unfortunate case of an ill-defined variable used in the following chapters, we refer the reader to this section.
 
 \subsection{Set problems} \label{setproblems}
 In the \emph{set cover} problem, we are given a set $U$, a family $\mathcal{F}$ of subsets of $U$ and a natural number $q$, and are tasked with the problem of deciding whether there are $q$ sets in $\mathcal{F}$ whose union equals $U$. In the \emph{set partition} problem, we must decide whether there are $q$ \emph{pairwise disjoint} sets in $\mathcal{F}$ whose union equals $U$. In the \emph{set packing} problem, we must decide whether there are $q$ pairwise disjoint subsets of $\mathcal{F}$ whose union is a \emph{subset} of $U$. Two sets are disjoint if they have no elements in common.
@@ -73,7 +73,7 @@ A \emph{graph} is a set of two distinct abstract units called \emph{vertices} an
 
 In the \emph{graph colouring} problem, we are given a graph $G = (V,E)$ and a natural number $q$, and tasked to determine whether there exists a mapping $\sigma: V \rightarrow [q]$ where $[q] = \{0,1,\ldots,q\}$, such that $\sigma(v) \neq \sigma(w)$ for each $vw \in E$. In other words, $\sigma$ is an assignment of one of $q$ \emph{colours} to each vertex such that no two adjacent vertices get the same colour; we call such an assignment a \emph{proper $q$-colouring} of $G$. The counting version of this problem asks \emph{how many} distinct such mappings exist; we call this number $P(G,q)$.
 
-The \emph{chromatic polynomial} $\chi_G(t)$ of the graph $G$ is the polynomial of degree $n$ in one indeterminate that passes through each point $(q, P(G,q))$. To determine $\chi_G(t)$, by for example specifying its coefficients, it suffices to determine the numbers $P(G,q)$ for each $q \leq n$ and then construct $\chi_G(t)$ by interpolation, as $n + 1$ points uniquely identifies an $n$-degree polynomial. Some characteristics of all chromatic polynomials:
+The \emph{chromatic polynomial} $\chi_G(t)$ of the graph $G$ is the polynomial of degree $n$ in one indeterminate that passes through each point $(q, P(G,q))$. To determine $\chi_G(t)$, by for example specifying its coefficients, it suffices to determine the numbers $P(G,q)$ for each $q \leq n$ and then construct $\chi_G(t)$ by interpolation, as $n + 1$ points uniquely identifies an $n$-degree polynomial. Some characteristics of all chromatic polynomials (proofs can be found in \cite[p.13]{hubai}):
 \begin{itemize}
  \item The coefficient of $t^n$ is always one.
  \item The coefficient of $t^{n-1}$ is always $-m$.
@@ -133,16 +133,16 @@ The \emph{chromatic number} $\chi(G)$ of the graph $G$ is the smallest $q$ for w
 \section{Previous work}
 The chromatic polynomial was specified in 1912 by Birkhoff \cite{birkhoff}, who defined it for planar graphs with the intent on proving the Four Colour Theorem. Whitney extended its definition to general graphs in 1932 \cite{whitney}, and Tutte incorporated it into what is now known as the Tutte polynomial. See for example Ellis-Monaghan and Merino \cite{tuttebook} for more in-depth analysis of the Tutte polynomial.
 
-The most commonly referenced problem in the field of graph colouring is the one of producing an \emph{optimal} colouring of a given graph, that is, a colouring using $\chi(G)$ colours. Trivially, this can of course be done by exhaustively searching through all possible assignments of the $n$ vertices to $q$ colours, starting from $q = 3$ and moving upwards (since 2-colouring is a problem in P), each step taking time $O^*(q^n)$, bound at the last step by $O^*(n^n)$. 
+The most commonly referenced problem in the field of graph colouring is the one of producing an \emph{optimal} colouring of a given graph, that is, a colouring using $\chi(G)$ colours. Trivially, this can of course be done by exhaustively searching through all possible assignments of the $n$ vertices to $q$ colours, starting from $q = 3$ and moving upwards (since 2-colouring is a problem in P), each step taking time $O^*(q^n)$, bound at the last step by $O^*(n^n)$. The notation $O^*$ hides polylogarithmic factors.
 
-For general colouring, Christofides~\cite{christo} constructed the first non-trivial algorithm in 1971, running in time $O(n!)$, a result which was first improved by Lawler~\cite{lawler} in 1976, who used dynamic programming and enumeration of maximal independent sets to obtain a running time of $O^*(2.4423^n)$. Björklund, Husfeldt and Koivisto~\cite{bhk1} currently hold the fastest known algorithm, exploiting the principle of inclusion-exclusion and the fast zeta transform to obtain a running time of $O^*(2^n)$. That algorithm is also the base of the main one studied in this report.
+For general colouring, Christofides~\cite{christo} constructed the first non-trivial algorithm in 1971, running in time $O(n!)$, a result which was first improved by Lawler~\cite{lawler} in 1976, who used dynamic programming and enumeration of maximal independent sets to obtain a running time of $O^*(2.4423^n)$. Björklund, Husfeldt and Koivisto~\cite{bhk1} currently hold the fastest known algorithm, exploiting the principle of inclusion-exclusion and the fast zeta transform to obtain a running time of $O^*(2^n)$. That algorithm is also the base of the main algorithm studied in this report.
 
 For small, fixed $q$, faster algorithms are known; Beigel and Eppstein~\cite{3coloring} currently hold the record of 3-colouring since 2005, which takes them $O^*(1.3289^n)$ time; considerably better than $O^*(2^n)$. To achieve this bound, they use a reduction of the colouring into a constraint satisfactory problem, in which they are able to find divisions of the problem into smaller subproblems, and solving these individually.
 Fomin, Gaspers and Saurabh~\cite{4coloring} invented the best known algorithm for 4-colouring in 2007, running in $O^*(1.7272^n)$ time. They base their algorithm on the proof that a graph will either allow efficient branching procedures to reduce the size of the problem, or it will have a small pathwidth, allowing for efficient algorithms to exploit its path decomposition.
 
 In 2010, Haggard, Pearce and Royle \cite{haggard} published a program, referred to in the following as \textbf{HPR}, to compute the Tutte polynomial for graphs using a deletion-contraction algorithm. The basic idea behind HPR goes back to Zykov~\cite{aazykov}, using cached subgraphs and isomorphism rejection to obtain good performance, and it can easily handle many instances of non-trivial sizes. Using the fact that the Tutte polynomial encodes the chromatic polynomial (as well as other graph invariants), HPR is also designed to output $\chi_G(t)$.
 
-In 2011, Björklund, Husfeldt, Kaski and Koivisto \cite{cov_pack} presented an algorithm to compute the chromatic polynomial in time $O^*(2^n)$ and space $O^*(1.2916^n)$, referred to here as the \textbf{BHKK} algorithm. The notation $O^*$ hides polylogarithmic factors. We discuss this algorithm in detail in section~\ref{bhkk}.
+In 2011, Björklund, Husfeldt, Kaski and Koivisto \cite{cov_pack} presented an algorithm to compute the chromatic polynomial in time $O^*(2^n)$ and space $O^*(1.2916^n)$, referred to here as the \textbf{BHKK} algorithm. We discuss this algorithm in detail in section~\ref{bhkk}.
 
 \section{Problem statement}
 The main question is whether the BHKK algorithm performs well in practice. Irrefutably, it does provide theoretical improvements in the form of a better asymptotic bound on space usage. Intuitively, using less memory means we spend less time handling the memory, and this could reduce also the time consumption. But as the asymptotic bound stays solid, we can not know for sure how impactful such a reduction could be. Björklund \emph{et al} also mentions that BHKK parallelizes well, and provides theoretical bounds suggesting how much of an improvement parallelization provides \cite[p.10]{cov_pack}. Haggard \emph{et al} does not perform an asymptotic analysis of their algorithm, instead presenting experimental results showing it ``performs well''. We will use HPR as a reference in our experiments, making us able to conclude that BHKK does provide improvement if it outperforms HPR. We attempt to answer the following direct questions:
@@ -172,7 +172,7 @@ In this chapter we present an in-depth view of the algorithms studied, including
 
 
 \section{Studied algorithms}
-While our emphasis lies on the BHKK algorithm for computing chromatic polynomials, we will here briefly describe also a few other algorithms that were studied as a part of our work.
+While our emphasis lies on the BHKK algorithm for computing chromatic polynomials, we will in this subsection briefly describe a few other algorithms that were studied as a part of our work.
 
 \subsection{The fast zeta transform}\label{fzt_algorithm}
 Björklund \emph{et al} \cite{cov_pack} base their work on an improvement of the fast zeta transform, FZT. There are two versions of FZT, the down-zeta transform $f\zeta$ and the up-zeta transform $f'\zeta$, and they are defined as
@@ -244,7 +244,7 @@ Here, $N(Y)$ is the set of all vertices in $G$ adjacent to at least one vertex i
 In subsequent sections, we will refer to this algorithm as ``the algorithm'', ``the BHKK algorithm'', or simply ``BHKK''.
 
 \subsection{Optimizations}\label{optimizations}
-Here are presented some improvements to the algorithm that are either natural, mentioned in \cite{cov_pack}, or invented by the author. This list is by no means exhaustive, nor is every item critical, but the ones we've explored proved to be efficient. 
+Here are presented some improvements to the algorithm that are either natural, mentioned in \cite{cov_pack}, or invented by the author. This list is by no means exhaustive, nor is every item critical, but the ones we have explored proved to be efficient. 
 
 \paragraph{Exploiting $q$}
 First, we can consider optimizing on the basis of the value of $q$.
@@ -316,11 +316,11 @@ For higher-order graphs, we have a smaller $T_{\density{}}(n)$, which gives us a
 
 \paragraph{Parallelization 2}\label{parallelization2} Typically, we will only have access to a constant number of CPUs in practice, allowing each of them to not execute one step but a range of iterations of step \ref{step1}. This allows for heuristics on how to select such ranges so that the overall time bound (set by the range of subsets $X$ that include the \emph{most} independent subsets $Y$) is minimal. The currently used heuristic is to simply take the subsets in inorder. As presented in section~\ref{powerofparallelization}, we can expect to reduce the time consumption of the program by a factor of around 6 in our test environment.
 
-\paragraph{Parallelization 3} The steps \ref{q} are independent of eachother, and allows parallelization on $O(n)$ CPUs. This would not reduce the exponential factor of the time complexity, but it will reduce the polynomial factor, and it is likely to give significant results in practice.
+\paragraph{Parallelization 3} The steps \ref{q} in BHKK are independent of each other, and allows parallelization on $O(n)$ CPUs. This would not reduce the exponential factor of the time complexity, but it will reduce the polynomial factor, and it is likely to give significant results in practice.
 
 \paragraph{Degree pruning} In step \ref{rstep} we exponentiate a polynomial of degree $d \leq n$ with $q$, yielding a polynomial of degree $d \leq nq$. Since $q \leq n$, we could have as much as $d = n^2$. But since we never do any divisions, and never care about coefficients for terms of degree $> n$, we can simply discard these terms, keeping $\text{deg } r \leq n$. This also applies to the multiplications of step~\ref{multi}.
 
-\paragraph{Caching} Since in fact all steps of the inner loop of BHKK are independent from $q$, except the final step~\ref{rstep}, we are actually re-computing the same values for the array $h$ as we increase $q$. If we would cache these values after the first call of step~\ref{step1}, we would be performing only step~\ref{rstep} for all the rest of the computations, plus a look-up in our cache table. This would require a cache of size $2^{n_1} 2^{n_2} = 2^n$, wrecking our space bound, but possibly improving time performance in practice.
+\paragraph{Caching} Since in fact all steps of the inner loop of BHKK are independent from $q$, except the final step~\ref{rstep}, we are actually re-computing the same values for the array $h$ as we increase $q$. If we would cache these values after the first call of step~\ref{step1}, we would be performing only step~\ref{rstep} for all the rest of the computations, plus a look-up in our cache table. This would require a cache of size $2^{n_1} 2^{n_2} = 2^n$, increasing our space bound, but possibly improving time performance in practice.
 
 
 \section{Algorithmic aspects}
@@ -341,7 +341,7 @@ The technique used in Toom-$k$ for multiplying two large integers is to split th
 
 For an overview of these algorithms, see for example Wikipedia \cite{strass} \cite{toom-cook}. An in-depth description can be found in Knuth \cite[sec. 4.3.3]{knuth2}.
 
-As presented below in section~\ref{implementation}, we employ a number of external libraries. One of the main reasons for this is to make use of existing implementations of the algorithms mentioned here, and not spend time implementing these ourselves. The external libraries provide the following support:
+As presented below in section~\ref{external}, we employ a number of external libraries. One of the main reasons for this is to make use of existing implementations of the algorithms mentioned here, and not spend time implementing these ourselves. The external libraries provide the following support:
 
 \begin{itemize}
  \item The GMP library supports Karatsuba, Toom-3, Toom-4, Toom-6.5, Toom-8.5 and Schönhage-Strassen algorithms \cite[p. 90]{gmp}, which means all libraries used in the programs uses these algorithms \emph{at least} when multiplying integers (i.e., coefficients of polynomials).
@@ -352,15 +352,15 @@ As presented below in section~\ref{implementation}, we employ a number of extern
 \section{Implementation}\label{implementation}
 All development of the programs discussed in this report have been written in C/C++, developed in a Unix (GNU/Linux) environment with the GNU compiler collection \code{gcc} as compiling and optimizing tool. Some of the ``helper'' programs (for automating tests and similar) have been written in Java.
 
-The first step of the implementation process was to get a working version of the FZT. This was then extended with functionality for calculating $q$-cover. Using only native C++ data types, we could only support problems of order $n < 12$, which of course are too small. Thus we employed the use of GMP, in order to represent arbitrarily large integers.
+The first step of the implementation process was to get a working version of the FZT. This was then extended with functionality for calculating $q$-cover. Using native C++ data types, we could only support problems of order $n < 12$, which of course are too small. Thus we employed the use of GMP, in order to represent arbitrarily large integers.
 
 In order to incorporate $q$-partition and $q$-packing, an implementation of polynomials was needed. A naive class was made, with slow multiplication algorithms. Basically it is only an array of GMP integers, using cross-multiplication with running time $O(n^2)$. Simulations were then run on the three programs generated, from which the only interesting results can be seen in section~\ref{setproblems_experiment}.
 
-That process mostly being an exercise in understanding the main issue, work was started on expanding the FZT implementation to become a BHKK implementation. Once this was done, tests showed that performance was not up to expectations. The problem was of course the polynomial arithmetic; enter the external libraries. First we incorporated NTL, which was easier than expected, but while it was better, it wasn't good enough. Then we turned to PARI, a task that was much the opposite; it was hard to get working properly, but once it did, results were quite satisfactory.
+That process being mostly an exercise in understanding the main issue, work was started on expanding the FZT implementation to become a BHKK implementation. Once this was done, tests showed that performance was not up to expectations. The problem was of course the polynomial arithmetic; enter the external libraries. First we incorporated NTL, which was easier than expected, but while it was better, it wasn't good enough. Then we turned to PARI, a task that was much the opposite; it was hard to get working properly, but once it did, results were quite satisfactory.
 
 Simulation suites were run many times on the NTL and PARI implementations as they developed, but eventually NTL was abandoned due to being too slow. We gave FLINT a try, but while it was better than NTL, it didn't show any indications on being able to beat PARI. Table~\ref{versions} lists all optimizations that time allowed to be implemented.
 
-\section{External libraries}
+\section{External libraries}\label{external}
 In order to focus on the BHKK algorithm and not dwell too much on implementation-specific optimizations, and to reduce the scope of work to produce testable programs, we decided to not implement polynomial arithmetic. Instead we have employed the use of several external libraries that implement polynomial arithmetic, usually with several fast multiplication algorithms in use.
 
 \subsection{NTL}
@@ -401,9 +401,9 @@ Here, released binaries compiled with PARI are called \code{bhkk-pari-x.y.z}.
 The Fast Library for Number Theory, FLINT, by mainly Hart \cite{flint} was also tried out. It does not use GMP, but instead a fork of GMP called MPIR, for low-level arithmetic operations. We did not release any program compiled with FLINT, however, as our initial tests showed no improvements as compared to PARI; it was decided time was best spent on other work.
 
 \subsection{GMP}
-NTL and PARI allow for the user to configure them using the GNU Multiple Precision library by mainly Granlund \cite{gmp}, as the lowest-level interface for integral arithmetic. Authors of the libraries suggest using GMP instead of their own native low-level interfaces, as this gives better performance. GMP implements a wide range of multiplication algorithms and provides fast assembler code optimizations for various CPU types.
+NTL and PARI allow for the user to configure them using the GNU Multiple Precision library mainly by Granlund \cite{gmp}, as the lowest-level interface for integral arithmetic. Authors of the libraries suggest using GMP instead of their own native low-level interfaces, as this gives better performance. GMP implements a wide range of multiplication algorithms and provides fast assembler code optimizations for various CPU types.
 
-GMP is well documented, easy-to-use, provides both C and C++ interfaces and even has a well-maintained\footnote{I got an answer the same day!} bug reporting facility. GMP provides a rich variety of configuration options, and we've tried to optimize as narrowly as possible to get maximum performance on one machine. In the implementations, we do not interface with GMP directly, as PARI and NTL hide this behind their own interfaces.
+GMP is well documented, easy-to-use, provides both C and C++ interfaces and even has a well-maintained\footnote{I got an answer the same day!} bug reporting facility. GMP provides a rich variety of configuration options, and we have tried to optimize as narrowly as possible to get maximum performance on one machine. In the implementations, we do not interface with GMP directly, as PARI and NTL hide this behind their own interfaces.
 
 
 \section{Experimental setup}\label{experimentalsetup}
@@ -418,7 +418,7 @@ Compiler & GCC 4.7.2 (g++) \\
 \end{tabular}
 \end{center}
 
-For all time and memory measurements, the GNU \code{time} 1.7 program is used (see the Linux man pages \cite{time}). The user time, elapsed time (real time)
+For all time and memory measurements, the GNU \code{time} 1.7 program is used (see the Linux man pages \cite{time}). The user time, elapsed time (real time)%
 \footnote{When running single-thread versions, we actually measure ``user time'', which is nearly equal to real time. ``Nearly'' refers to the fact that there are some units of time scheduled as system time, but these values are too small to be significant in these experiments.}
 and peak resident set size are the data points recovered as measurements. These measurements are taken by running the specified program on a number of graphs of equal order and size and the average values are the ones presented. For most tests, we average over 100 graphs, but for larger-order graphs we average over 50 to reduce the time needed for the simulation to finish.
 
@@ -445,7 +445,7 @@ There are three ``released'' versions of the programs that implement the BHKK al
 In this chapter, we focus on the results that we managed to achieve through this Master's Thesis. We have tried to be as picky as possible when selecting what data to present, as there is quite a lot produced. The sections are ordered logically rather than chronologically, and most diagrams are presented as part of the text, and are unnamed.
 
 \section{Set problems}\label{setproblems_experiment}
-While quite a lot of simulation was done for these programs, results were somewhat uninteresting. This is due to several reasons. Firstly, the simulation process was not mature enough to be tuned to test the most interesting areas. Secondly, these problems are only an auxiliary part of the scientific worth of the main paper (Björklund \emph{et al} \cite{cov_pack}) studied by this Master's Thesis. Thirdly, there was no reference implementation with which to compare performance. Due to these reasons, we only present the hierarchy and absolute values of the running times of the set problems, also including a plot for the ``raw'' FZT, without any summation in the inner loop.
+While quite a lot of simulation was done for these programs, results were somewhat uninteresting. This is due to several reasons. Firstly, the simulation process was not mature enough to be tuned to test the most interesting areas. Secondly, these problems are only an auxiliary part of the scientific worth of the main paper (Björklund \emph{et al} \cite{cov_pack}) studied in this Master's Thesis. Thirdly, there was no reference implementation with which to compare performance. Due to these reasons, we only present the hierarchy and absolute values of the running times of the set problems, also including a plot for the ``raw'' FZT, without any summation in the inner loop.
 \begin{center}
 \begin{tikzpicture}
 \begin{semilogyaxis}[
@@ -466,7 +466,7 @@ ylabel=Time (ms)]
 As expected, $q$-packing is the most expensive algorithm. These programs use a naive polynomial implementation, and it is almost guaranteed that they would perform significantly better if PARI polynomials were used. If it was not obvious already, this plot makes it undoubtedly clear that polynomial arithmetic far outscales integer arithmetic in terms of computational cost.
 
 \section{Computing chromatic polynomials}
-We turn our focus to the core results of this Master's Thesis, namely the performance of the BHKK algorithm in practice. Since several versions were developed, the potential width of our simulations is huge. We will not present every simulation and its results, but limit ourselves to the most important and interesting ones. In short, it comes down to five cases: first we race the fastest implemented version against itself; second against the reference algorithm HPR; third we race our parallelized version(s) against the non-parallel ones; fourth we race the polynomial arithmetic libraries against eachother; and finally we compare the behaviour of BHKK and HPR on a few other classes of random graphs.
+We turn our focus to the core results of this Master's Thesis, namely the performance of the BHKK algorithm in practice. Since several versions were developed, the potential width of our simulations is huge. We will not present every simulation and its results, but limit ourselves to the most important and interesting ones. In short, it comes down to five cases: first we race the fastest implemented version against itself; second against the reference algorithm HPR; third we race our parallelized version(s) against the non-parallel ones; fourth we race the polynomial arithmetic libraries against each other; and finally we compare the behaviour of BHKK and HPR on a few other classes of random graphs.
 
 \subsection{Fastest implementation}\label{fastest}
 The fastest program developed is the one we call \code{bhkk-pari-0.3}. The below plots visualize its performance in relation to increasing order and size, respectively. These runs were executed using 45 virtual threads, a number that was measured to be the lowest-cost in terms of time consumption (see \ref{powerofparallelization} for details).
@@ -522,7 +522,7 @@ ylabel=Average peak resident set size (kB)]
 \\
 \end{tabular}
 \end{center}
-What we can see is that BHKK performs consistently better for graphs of \emph{larger} size, which is in alignment with our discussion in section~\ref{graphdensity}; we experiment more on this characteristic in section~\ref{differentdensities} below. We also see that for graphs of order $\leq 11$, the program runs too fast for our measurement accuracy. For order 23, each run takes about 5 minutes. Making 100 such runs is about 10 hours of computing time; we're approaching our exhaust limit for computation time.
+What we can see is that BHKK performs consistently better for graphs of \emph{larger} size, which is in alignment with our discussion in section~\ref{graphdensity}; we experiment more on this characteristic in section~\ref{differentdensities} below. We also see that for graphs of order $\leq 11$, the program runs too fast for our measurement accuracy. For order 23, each run takes about 5 minutes. Making 100 such runs is about 10 hours of computing time; we are approaching our exhaust limit for computation time.
 
 But is this performance any good? To provide an answer we let HPR and BHKK run on the same input graphs. When doing some initial testing, we find that HPR seems to do better if the input has ``some kind of structure'', rather than being ``random''. This is manifested by it performing considerably well on any ``famous'' graph (which usually is famous because such graphs appeal to some ``human sense'' of pattern-recognition). But in the case of graphs generated according to the randomized process mentioned in section~\ref{experimentalsetup}, HPR does not scale as well as BHKK, and has a ``weak spot'' for graphs of density around 75 \cite[p. 14]{haggard}.
 
@@ -686,7 +686,7 @@ ylabel=Average peak resident set size (kB)]
 \end{tikzpicture}
 \end{tabular}
 \end{center}
-While the time difference is very small, it is the case that 12 threads were never better than 45. It remains unclear whether graph order, process scheduling techniques or algorithm design is the cause of 45 to be a ``magic number''. We do pay for the small time gain with a sizeable memory cost.
+While the time difference is very small, in fact 12 threads were never better than 45. It remains unclear whether graph order, process scheduling techniques or algorithm design is the cause of 45 to be a ``magic number''. We do pay for the small time gain with a sizeable memory cost, however.
 
 But how powerful is our parallelization as compared to \emph{no} parallelization? Below we plot the serialized \code{bhkk-pari-0.1} versus our best implementation \code{bhkk-pari-0.3}, run with 45 threads.
 \begin{center}
@@ -781,7 +781,7 @@ We mentioned in section~\ref{parallelization2} that we are able to improve the p
 
 % \end{multicols}
 
-As a final comparison, we refer to table~\ref{improvements}, where we show our first attempt at defeating HPR, and our eventual victory.
+As a final comparison, we refer to table~\ref{improvements}, where we show our first attempt at defeating HPR, and our eventual success.
 
 \begin{table}[t]\centering
 \begin{tabular}{c|cc} \hline
@@ -936,7 +936,7 @@ ylabel=Average real time (ms)]
 \end{center}
 For BHKK, the results are somewhat uninteresting, again backing up the conclusion that BHKK simply performs consistently better on larger sized graphs, but otherwise doesn't react on graph size at all. HPR again shows its size dependence, and spikes quite a lot for the $f_{qlog}$ graphs; in fact, the largest ones are only averaged over 4 completed instances since computing these polynomials was hugely expensive.
 
-In figure~\ref{individual} we see BHKK and HPR versus eachother on the individual size functions. For both $f_q$ and $f_{log}$, it's quite clear that HPR increases in time faster than BHKK, but we are unable to decide where exactly BHKK will become the better choice. For $f_{lin}$, we are unlikely to ever be able to craft a graph where BHKK will be better than HPR, at least in human computing time. The function $f_{qlog}$ actually improves upon the results mentioned in section~\ref{fastest}, showing that already for order 18, BHKK is better than HPR.
+In figure~\ref{individual} we see BHKK and HPR versus each other on the individual size functions. For both $f_q$ and $f_{log}$, it is quite clear that HPR increases in time faster than BHKK, but we are unable to decide where exactly BHKK will become the better choice. For $f_{lin}$, we are unlikely to ever be able to craft a graph where BHKK will be better than HPR, at least in human computing time. The function $f_{qlog}$ actually improves upon the results mentioned in section~\ref{fastest}, showing that already for order 18, BHKK is better than HPR.
 
 \begin{figure}\centering
 \begin{tabular}{rl}
@@ -1007,7 +1007,7 @@ Hillar and Windfeldt made an attempt to further verify their results by determin
 + 68794778568t^4 - 28408042814t^3 + 7537920709t^2 \\ & \quad - 963326674t
 \end{split}
 \end{equation*}
-and in particular, $\chi_{Akbari}(3) = 3!$, as expected. This took $1445$ seconds to compute, using our fastest implementation. HPR however terminated even faster, which was to be expected, given that Akbari's graph has a very small size (density is about 16\%).
+and in particular, $\chi_{Akbari}(3) = 3!$, as expected. This took $1445$ seconds (less than half an hour) to compute, using our fastest implementation. HPR however terminated even faster, which was to be expected, given that Akbari's graph has a very small size (density is about 16\%).
 
 \begin{center}
 \begin{figure}
@@ -1094,7 +1094,7 @@ w/.style ={ circle ,draw, text=black, minimum width = 6 mm, fill = white!0}]
 
 \section{Queen graph}
 
-The $n \times n$ \emph{Queen graph} is a graph laid out like a chess board with $n$ squares per side. Each square is a vertex and it has edges to all squares in its column, in its row and in its diagonals. In other words, to each square to which a queen could move, if placed on said square. Here we provide the chromatic polynomial of the $5 \times 5$ Queen graph $Q_5$ on 25 vertices.
+The $n \times n$ \emph{Queen graph} is a graph laid out like a chess board with $n$ squares per side. Each square is a vertex and it has edges to all squares in its column, in its row and in its diagonals. In other words, to each square to which a chess queen could move, if placed on that square. Here we provide the chromatic polynomial of the $5 \times 5$ Queen graph $Q_5$ on 25 vertices.
 
 \begin{equation*}
 \begin{split}
@@ -1282,7 +1282,7 @@ ylabel=Average peak resident set size (kB)]
  \chapter{Seminar paper}
  A short version of the problem statement and results of this Master's Thesis work resulted in a 12-page paper which was handed in to the SEA seminar in Copenhagen. We attach that paper as an appendix to this report for completeness, even though the reader will find much redundancy between it and what has been stated and shown above. (The format and page numbering is independent in this document.)
  
- \includepdf[pages={-}]{12pages.pdf}
+ \includepdf[pages={-}]{12pages_2.pdf}
  
 \end{appendices}
 
